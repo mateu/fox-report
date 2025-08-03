@@ -1,0 +1,12 @@
+config/.exports
+config/.jwt_secret
+config/.search_stats.json
+config/.timeline
+config/.vacuum
+config/backup.db
+config/backup_config.yaml
+config/frigate.db
+config/frigate.db-shm
+config/frigate.db-wal
+config/model_cache/
+storage/

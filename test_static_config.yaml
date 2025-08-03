@@ -1,0 +1,58 @@
+# Night Observation Configuration Template
+# This file contains default settings for night observation scheduling
+
+# Default observation settings
+nights:
+  # Number of nights to schedule (integer)
+  count: 7
+  
+  # Default start and end times (ISO format or 'sunset'/'sunrise')
+  # Can be overridden by geographic calculations
+  start: "sunset"
+  end: "sunrise"
+
+# Email notification settings
+email:
+  # Default recipient for observation reports
+  recipient: "hunter@406mt.org"
+  
+  # Email format preference
+  format: "html"  # Options: html, text, json
+
+# Geographic location for sunset/sunrise calculations
+location:
+  # Coordinates in decimal degrees
+  latitude: 46.9080
+  longitude: -114.0722 
+  
+  # Optional: timezone (if not specified, will be calculated from coordinates)
+  timezone: "America/Denver"
+  
+  # Elevation in meters (affects twilight calculations)
+  elevation: 980
+
+# Alternative: Static time configuration (overrides location-based calculations)
+# Uncomment to use fixed times instead of geographic calculations
+static_times:
+  enabled: true
+  start_time: "20:00"  # 24-hour format
+  end_time: "06:00"
+
+# Output and logging settings
+output:
+  # Verbosity level: 0=quiet, 1=normal, 2=verbose, 3=debug
+  verbosity: 1
+  
+  # Log file location (optional)
+  log_file: /tmp/friggin-foxes.log
+  
+  # Output format for reports
+  format: "table"  # Options: table, json, csv, yaml
+
+# Advanced settings
+advanced:
+  # Astronomical twilight types for calculations
+  twilight_type: "nautical"  # Options: civil, nautical, astronomical
+  
+  # Buffer time in minutes before/after calculated times
+  buffer_minutes: 15
