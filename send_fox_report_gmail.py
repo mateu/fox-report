@@ -9,6 +9,11 @@ Integrates report generation, JSON export, and email sending functionality.
 import os
 import sys
 import yaml
+
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 import json
 import logging
 import logging.handlers

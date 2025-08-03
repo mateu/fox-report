@@ -8,6 +8,11 @@ JSON report attachments.
 """
 
 import os
+
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 import sys
 import json
 import tempfile

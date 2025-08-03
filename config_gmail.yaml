@@ -26,8 +26,8 @@ email:
     port: 587
     use_tls: true
     username: "hunter@406mt.org"
-    # Password will be set via environment variable GMAIL_APP_PASSWORD
-    # or via command line argument
+    # Password: Use environment variable GMAIL_APP_PASSWORD (see .env.example)
+    # Leave password field empty - will automatically use GMAIL_APP_PASSWORD env var
     password: ""
 
 # Geographic location for sunset/sunrise calculations

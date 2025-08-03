@@ -10,3 +10,4 @@ config/frigate.db-shm
 config/frigate.db-wal
 config/model_cache/
 storage/
+.env
