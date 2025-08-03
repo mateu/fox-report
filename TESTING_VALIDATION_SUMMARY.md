@@ -54,7 +54,7 @@ Step 12 testing and validation completed successfully. All components tested and
 
 ### Command Executed
 ```bash
-python send_fox_report_enhanced.py --config test_config.yaml --nights 1 --verbose --no-email
+python send_fox_report_gmail.py --config test_config.yaml --nights 1 --verbose --no-email
 ```
 
 ### Results
@@ -122,7 +122,7 @@ INFO: Successfully processed 2 events across 2 cameras
 - **Status**: ✅ PIPELINE FUNCTIONAL
 - **Command**: 
   ```bash
-  python send_fox_report_enhanced.py --config test_config.yaml --nights 1 --verbose
+  python send_fox_report_gmail.py --config test_config.yaml --nights 1 --verbose
   ```
 - **Results**:
   - HTML email content generated successfully

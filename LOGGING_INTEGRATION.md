@@ -1,7 +1,7 @@
 # Fox Report Logging Integration
 
 ## Overview
-Enhanced the `send_fox_report.py` script with comprehensive logging functionality that obeys command-line flags and uses lazy formatting as requested.
+Enhanced the `send_fox_report_gmail.py` script with comprehensive logging functionality that obeys command-line flags and uses lazy formatting as requested.
 
 ## Features Implemented
 
@@ -42,19 +42,19 @@ output:
 
 ### Normal Mode
 ```bash
-python send_fox_report.py --nights 3
+python send_fox_report_gmail.py --nights 3
 # Shows INFO level and above to console + file + syslog
 ```
 
 ### Verbose Mode
 ```bash
-python send_fox_report.py --verbose --nights 3
+python send_fox_report_gmail.py --verbose --nights 3
 # Shows DEBUG level and above (detailed logging)
 ```
 
 ### Quiet Mode
 ```bash
-python send_fox_report.py --quiet --nights 3
+python send_fox_report_gmail.py --quiet --nights 3
 # Shows WARNING level and above only (minimal output)
 ```
 
@@ -103,7 +103,7 @@ Created `test_logging.py` to demonstrate all features:
 - Lazy formatting examples
 
 ## Files Modified
-1. `send_fox_report.py` - Enhanced with logging system
+1. `send_fox_report_gmail.py` - Enhanced with logging system
 2. `config_template.yaml` - Added logging configuration
 3. `test_logging.py` - Created for testing/demonstration
 

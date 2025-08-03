@@ -20,7 +20,7 @@ def run_command(cmd):
 def test_help():
     """Test help output"""
     print("Testing help output...")
-    exit_code, stdout, stderr = run_command("python3 send_fox_report.py --help")
+    exit_code, stdout, stderr = run_command("python3 send_fox_report_gmail.py --help")
     assert exit_code == 6, f"Expected exit code 6, got {exit_code}"
     assert "Frigate Fox detection reports" in stdout
     assert "Exit Codes:" in stdout
@@ -29,7 +29,7 @@ def test_help():
 def test_mutually_exclusive_args():
     """Test mutually exclusive arguments"""
     print("Testing mutually exclusive arguments...")
-    exit_code, stdout, stderr = run_command("python3 send_fox_report.py --verbose --quiet")
+    exit_code, stdout, stderr = run_command("python3 send_fox_report_gmail.py --verbose --quiet")
     assert exit_code == 6, f"Expected exit code 6, got {exit_code}"
     assert "mutually exclusive" in stdout
     print("✓ Mutually exclusive args test passed")
@@ -37,7 +37,7 @@ def test_mutually_exclusive_args():
 def test_invalid_nights():
     """Test invalid nights parameter"""
     print("Testing invalid nights parameter...")
-    exit_code, stdout, stderr = run_command("python3 send_fox_report.py --nights 0")
+    exit_code, stdout, stderr = run_command("python3 send_fox_report_gmail.py --nights 0")
     assert exit_code == 6, f"Expected exit code 6, got {exit_code}"
     assert "must be positive" in stdout
     print("✓ Invalid nights test passed")
@@ -45,14 +45,14 @@ def test_invalid_nights():
 def test_config_not_found():
     """Test configuration file not found"""
     print("Testing config file not found...")
-    exit_code, stdout, stderr = run_command("python3 send_fox_report.py --config nonexistent.yaml --quiet")
+    exit_code, stdout, stderr = run_command("python3 send_fox_report_gmail.py --config nonexistent.yaml --quiet")
     assert exit_code == 1, f"Expected exit code 1, got {exit_code}"
     print("✓ Config not found test passed")
 
 def test_successful_run():
     """Test successful run without email"""
     print("Testing successful run...")
-    exit_code, stdout, stderr = run_command("python3 send_fox_report.py --no-email --quiet")
+    exit_code, stdout, stderr = run_command("python3 send_fox_report_gmail.py --no-email --quiet")
     assert exit_code == 0, f"Expected exit code 0, got {exit_code}"
     # Check that JSON file was created
     json_files = [f for f in os.listdir('/tmp') if f.startswith('fox_report_') and f.endswith('.json')]
@@ -62,7 +62,7 @@ def test_successful_run():
 def test_verbose_mode():
     """Test verbose mode"""
     print("Testing verbose mode...")
-    exit_code, stdout, stderr = run_command("python3 send_fox_report.py --no-email --verbose")
+    exit_code, stdout, stderr = run_command("python3 send_fox_report_gmail.py --no-email --verbose")
     assert exit_code == 0, f"Expected exit code 0, got {exit_code}"
     # Check for DEBUG level logging or verbose-specific output
     combined_output = stdout + stderr
