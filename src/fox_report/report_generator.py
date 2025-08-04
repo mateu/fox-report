@@ -158,9 +158,9 @@ def generate_markdown_report(report: Dict) -> str:
     
     # Header
     md_lines.extend([
-        "# 🦊 Fox Detection Report",
+
         "",
-        f"**Generated:** {datetime.fromisoformat(report['metadata']['generated_at']).strftime('%Y-%m-%d %H:%M:%S %Z')},",
+        f"**Generated:** {datetime.fromisoformat(report['metadata']['generated_at']).strftime('%Y-%m-%d %H:%M:%S %Z')}",
         f"**Nights Analyzed:** {report['metadata']['total_nights']} nights",
         f"**Total Events:** {report['totals']['total_events']}",
         f"**Cameras with Detections:** {report['totals']['cameras_with_detections']}",
