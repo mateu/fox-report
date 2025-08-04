@@ -190,7 +190,7 @@ def generate_markdown_report(report: Dict) -> str:
                 
                 md_lines.append(
                     f"- {start_time} | Confidence: {confidence_pct:.0f}% | "
-                    f"Duration: {duration_str} | ID: {event['event_id']}"
+                    f"Duration: {duration_str} | ID: [{event['event_id']}](https://frig.mso.mt/api/events/{event['event_id']}/clip.mp4)"
                 )
             
             if len(events) > 5:

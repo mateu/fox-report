@@ -8,6 +8,7 @@ import sys
 import json
 import tempfile
 import subprocess
+import re
 import logging
 import shutil
 import smtplib
@@ -398,6 +399,11 @@ class EmailSender:
             # Bold text
             elif '**' in line:
                 line = line.replace('**', '<strong>', 1).replace('**', '</strong>', 1)
+                converted_lines.append(line)
+            # Convert markdown links [text](url) to HTML links
+            elif "[" in line and "](" in line and ")" in line:
+                # Use regex to convert markdown links to HTML
+                line = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', line)
                 converted_lines.append(line)
             # List items
             elif line.strip().startswith('- '):
