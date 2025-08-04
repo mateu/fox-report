@@ -298,6 +298,7 @@ if __name__ == "__main__":
     )
     
     args = parser.parse_args()
+    print("DEBUG: nights=" + str(args.nights) + ", config=" + args.config)
     
     # Validate mutually exclusive flags
     if args.verbose and args.quiet:

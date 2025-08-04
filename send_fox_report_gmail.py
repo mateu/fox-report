@@ -12,8 +12,7 @@ import os
 # Add src to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
-# Import and run the CLI
-from cli.send_report import main
-
 if __name__ == "__main__":
-    main()
+    # Execute the CLI module as a script to trigger argument parsing
+    import runpy
+    runpy.run_module('cli.send_report', run_name='__main__')
