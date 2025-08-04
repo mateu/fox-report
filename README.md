@@ -12,16 +12,52 @@ This utility provides functions for calculating dusk and dawn times for astronom
 - **Timezone Support**: Handles timezone conversions properly
 - **Buffer Time**: Adds configurable buffer time before dusk and after dawn
 
-## Installation
+## Installation & Setup
 
-1. Install dependencies:
+### 1. Create Virtual Environment
+
+**IMPORTANT**: This project requires a virtual environment to ensure all dependencies are properly isolated and available.
+
 ```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment (Linux/macOS)
+source venv/bin/activate
+
+# Activate virtual environment (Windows)
+venv\Scripts\activate
+```
+
+### 2. Install Dependencies
+
+```bash
+# Make sure virtual environment is activated first!
 pip install -r requirements.txt
 ```
 
-2. Configure your location and preferences in `config_template.yaml`
+### 3. Configure Environment Variables
+
+Copy the example environment file and configure your settings:
+
+```bash
+cp .env.example .env
+# Edit .env with your specific configuration
+```
+
+### 4. Configure Location Settings
+
+Configure your location and preferences in `config_template.yaml`
 
 ## Usage
+
+**IMPORTANT**: Always activate the virtual environment before running any scripts:
+
+```bash
+source venv/bin/activate  # Linux/macOS
+# or
+venv\Scripts\activate     # Windows
+```
 
 ### Command Line Interface
 
@@ -220,9 +256,15 @@ The email sender automatically includes these essential headers for deliverabili
 - **Content-Type**: Proper multipart/alternative with UTF-8 charset
 - **Plain-text alternative**: HTML emails include auto-generated plain-text version
 
+
 ### Usage Examples
 
+**IMPORTANT**: Always activate the virtual environment before running scripts:
+
 ```bash
+# Activate virtual environment first
+source venv/bin/activate
+
 # Send report with default settings (INFO level logging)
 python send_fox_report_gmail.py
 
@@ -241,4 +283,13 @@ The email system supports environment variable controlled logging:
 - `LOG_LEVEL=INFO`: Standard operational logging (default)
 - `LOG_LEVEL=WARNING`: Only warnings and errors
 - `LOG_LEVEL=ERROR`: Only error messages
+
+### Troubleshooting
+
+If emails are being sent via system mail instead of Gmail SMTP, ensure:
+
+1. **Virtual environment is activated**: `source venv/bin/activate`
+2. **All dependencies are installed**: `pip install -r requirements.txt`
+3. **Environment variables are configured**: Check `.env` file
+4. **Gmail app password is correct**: 16-character space-separated format
 
