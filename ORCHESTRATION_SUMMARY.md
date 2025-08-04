@@ -1,7 +1,7 @@
 # Step 9: Main Script Orchestration - Implementation Summary
 
 ## Overview
-The main entry point script `send_fox_report.py` has been fully implemented to meet Step 9 requirements:
+The main entry point script `send_fox_report_gmail.py` has been fully implemented to meet Step 9 requirements:
 
 ✅ **Entry point parses args** - Comprehensive argument parsing with validation
 ✅ **Loads config** - YAML configuration loading with error handling  
@@ -17,7 +17,7 @@ The main entry point script `send_fox_report.py` has been fully implemented to m
 
 ### Command Line Interface
 ```bash
-./send_fox_report.py [OPTIONS]
+./send_fox_report_gmail.py [OPTIONS]
 
 Options:
   --config, -c FILE     Configuration file (default: config_template.yaml)
