@@ -174,3 +174,71 @@ The utility properly handles timezones:
 - Falls back to UTC if no timezone is specified
 - All returned datetime objects include timezone information
 - Handles daylight saving time transitions automatically
+
+## Gmail Email Sending Setup
+
+This project includes functionality to send automated email reports using Gmail SMTP. The implementation includes proper authentication, spam prevention headers, and deliverability optimization.
+
+### Required Environment Variables
+
+Create a `.env` file in the project root with the following variables:
+
+```bash
+# Gmail Configuration (required for email sending)
+GMAIL_APP_PASSWORD=your_gmail_app_password_here
+GMAIL_EMAIL=your-email@gmail.com
+
+# SMTP Configuration (required for deliverability testing)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your_gmail_app_password_here
+DOMAIN=yourdomain.com
+
+# Logging Configuration (optional)
+# LOG_LEVEL options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+LOG_LEVEL=INFO
+```
+
+### Gmail Setup Instructions
+
+1. **Enable 2-Factor Authentication** on your Gmail account
+2. **Generate App Password**: 
+   - Go to Google Account settings → Security → 2-Step Verification → App passwords
+   - Generate a new app password for "Mail"
+   - Use this password in `GMAIL_APP_PASSWORD` (not your regular Gmail password)
+3. **Copy `.env.example`** to `.env` and fill in your credentials
+
+### Email Headers Implementation
+
+The email sender automatically includes these essential headers for deliverability and spam prevention:
+
+- **Message-ID**: Unique identifier using UUID4 format (`<uuid@domain>`)
+- **Date**: RFC-2822 formatted timestamp with timezone
+- **Reply-To**: Configurable support email address
+- **X-Mailer**: Application identifier (`FoxReport/1.0 (Python smtplib)`) 
+- **Content-Type**: Proper multipart/alternative with UTF-8 charset
+- **Plain-text alternative**: HTML emails include auto-generated plain-text version
+
+### Usage Examples
+
+```bash
+# Send report with default settings (INFO level logging)
+python send_fox_report_gmail.py
+
+# Send with debug logging for troubleshooting
+LOG_LEVEL=DEBUG python send_fox_report_gmail.py
+
+# Test email functionality
+python email_sender_gmail.py
+```
+
+### Logging Control
+
+The email system supports environment variable controlled logging:
+
+- `LOG_LEVEL=DEBUG`: Maximum verbosity for troubleshooting
+- `LOG_LEVEL=INFO`: Standard operational logging (default)
+- `LOG_LEVEL=WARNING`: Only warnings and errors
+- `LOG_LEVEL=ERROR`: Only error messages
+

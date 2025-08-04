@@ -20,7 +20,7 @@ import logging.handlers
 from datetime import datetime
 from typing import Optional
 
-from report_generator_enhanced import generate_fox_report, get_last_n_nights_data
+from report_generator import generate_fox_report, get_last_n_nights_data
 from email_sender_gmail import EmailSender
 
 # Global logger instance

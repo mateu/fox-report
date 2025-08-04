@@ -1,18 +1,9 @@
 #!/usr/bin/env python3
 """
-Frigate Fox Report Email Sender - Gmail SMTP Support
-
-This module handles rendering email templates and sending reports via Gmail SMTP
-or system mail as fallback. Supports both HTML and text email formats with 
-JSON report attachments.
+Patched version with enhanced SMTP debugging
 """
 
 import os
-
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 import sys
 import json
 import tempfile
@@ -27,6 +18,10 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
 from jinja2 import Environment, FileSystemLoader, Template
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging using lazy formatting approach
 logger = logging.getLogger(__name__)
@@ -62,7 +57,6 @@ class EmailSender:
                 loader=FileSystemLoader('.'),
                 autoescape=True if self.format_type == 'html' else False
             )
-            logger.debug("Jinja2 environment initialized successfully")
         except Exception as e:
             logger.error("Failed to initialize Jinja2 environment: %s", str(e))
             raise EmailSendError("Template system initialization failed") from e
@@ -93,7 +87,7 @@ class EmailSender:
 
     def _send_via_smtp(self, subject: str, body: str, json_report_path: str = None) -> Tuple[bool, str, str]:
         """
-        Send email via Gmail SMTP.
+        Send email via Gmail SMTP with enhanced debugging.
         
         Args:
             subject: Email subject
@@ -103,9 +97,22 @@ class EmailSender:
         Returns:
             Tuple of (success: bool, stdout: str, stderr: str)
         """
+        # Create unique debug file path for this attempt
+        debug_file_path = os.path.join(
+            tempfile.gettempdir(), 
+            f"smtp_debug_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        )
+        
         try:
             # Get password from config or environment
             password = self.smtp_config.get('password') or os.getenv('GMAIL_APP_PASSWORD')
+            
+            # Log SMTP configuration (without password)
+            logger.debug("SMTP Configuration - Server: %s, Port: %s, Username: %s, TLS: %s", 
+                        self.smtp_config['server'], 
+                        self.smtp_config['port'],
+                        self.smtp_config['username'],
+                        self.smtp_config.get('use_tls', True))
             
             # Create message
             msg = MIMEMultipart()
@@ -136,16 +143,131 @@ class EmailSender:
                 except Exception as e:
                     logger.warning("Failed to attach JSON report: %s", str(e))
             
-            # Connect to server and send
-            server = smtplib.SMTP(self.smtp_config['server'], self.smtp_config['port'])
+            # Write full message to debug file BEFORE sending
+            full_message = msg.as_string()
+            try:
+                with open(debug_file_path, 'w', encoding='utf-8') as debug_file:
+                    debug_file.write("=== SMTP DEBUG LOG ===\n")
+                    debug_file.write(f"Timestamp: {datetime.now().isoformat()}\n")
+                    debug_file.write(f"Server: {self.smtp_config['server']}\n")
+                    debug_file.write(f"Port: {self.smtp_config['port']}\n")
+                    debug_file.write(f"Username: {self.smtp_config['username']}\n")
+                    debug_file.write(f"Recipient: {self.recipient}\n")
+                    debug_file.write(f"Use TLS: {self.smtp_config.get('use_tls', True)}\n")
+                    debug_file.write("=== FULL EMAIL MESSAGE ===\n")
+                    debug_file.write(full_message)
+                    debug_file.write("\n=== SMTP TRANSACTION LOG ===\n")
+                
+                logger.info("Full email message written to debug file: %s", debug_file_path)
+            except Exception as e:
+                logger.warning("Failed to write debug file: %s", str(e))
             
-            if self.smtp_config.get('use_tls', True):
-                server.starttls()
-            
-            server.login(self.smtp_config['username'], password)
-            text = msg.as_string()
-            server.sendmail(self.smtp_config['username'], self.recipient, text)
-            server.quit()
+            # SMTP Connection and Transaction with verbose logging
+            server = None
+            try:
+                # Step 1: Connect to SMTP server
+                logger.info("Attempting SMTP connection to %s:%s", 
+                           self.smtp_config['server'], self.smtp_config['port'])
+                
+                server = smtplib.SMTP(self.smtp_config['server'], self.smtp_config['port'])
+                
+                # Enable debug output to capture SMTP protocol conversation
+                server.set_debuglevel(1)
+                
+                logger.info("SMTP connection established successfully to %s:%s", 
+                           self.smtp_config['server'], self.smtp_config['port'])
+                
+                # Step 2: Start TLS if configured
+                if self.smtp_config.get('use_tls', True):
+                    logger.info("Starting TLS encryption")
+                    tls_response = server.starttls()
+                    logger.info("TLS started - Response code: %s, Message: %s", 
+                               tls_response[0], tls_response[1].decode('utf-8') if tls_response[1] else 'None')
+                else:
+                    logger.info("TLS disabled in configuration")
+                
+                # Step 3: Authenticate
+                logger.info("Attempting SMTP authentication for user: %s", self.smtp_config['username'])
+                
+                try:
+                    login_response = server.login(self.smtp_config['username'], password)
+                    logger.info("SMTP authentication successful - Response code: %s, Message: %s", 
+                               login_response[0], login_response[1].decode('utf-8') if login_response[1] else 'None')
+                except smtplib.SMTPAuthenticationError as auth_error:
+                    logger.error("SMTP authentication failed - Code: %s, Message: %s", 
+                                auth_error.smtp_code, auth_error.smtp_error.decode('utf-8') if auth_error.smtp_error else 'None')
+                    raise
+                except Exception as auth_error:
+                    logger.error("SMTP authentication error: %s", str(auth_error))
+                    raise
+                
+                # Step 4: Send email
+                logger.info("Sending email from %s to %s", self.smtp_config['username'], self.recipient)
+                
+                try:
+                    send_result = server.sendmail(self.smtp_config['username'], self.recipient, full_message)
+                    
+                    # sendmail() returns a dictionary of failed recipients
+                    if send_result:
+                        # Some recipients failed
+                        logger.warning("Some recipients failed: %s", send_result)
+                        failed_recipients = list(send_result.keys())
+                        logger.error("Failed to send to recipients: %s", ', '.join(failed_recipients))
+                        raise EmailSendError(f"Failed to send to: {', '.join(failed_recipients)}")
+                    else:
+                        # All recipients succeeded
+                        logger.info("Email sent successfully to all recipients")
+                        
+                        # Log successful send to debug file
+                        try:
+                            with open(debug_file_path, 'a', encoding='utf-8') as debug_file:
+                                debug_file.write(f"\n=== SEND RESULT ===\n")
+                                debug_file.write(f"Success: True\n")
+                                debug_file.write(f"Failed recipients: None\n")
+                                debug_file.write(f"Timestamp: {datetime.now().isoformat()}\n")
+                        except Exception as e:
+                            logger.warning("Failed to update debug file with send result: %s", str(e))
+                            
+                except smtplib.SMTPRecipientsRefused as recipients_error:
+                    logger.error("All recipients refused - Error: %s", recipients_error.recipients)
+                    raise
+                except smtplib.SMTPSenderRefused as sender_error:
+                    logger.error("Sender refused - Code: %s, Message: %s, Sender: %s", 
+                                sender_error.smtp_code, sender_error.smtp_error.decode('utf-8') if sender_error.smtp_error else 'None', sender_error.sender)
+                    raise
+                except smtplib.SMTPDataError as data_error:
+                    logger.error("SMTP data error - Code: %s, Message: %s", 
+                                data_error.smtp_code, data_error.smtp_error.decode('utf-8') if data_error.smtp_error else 'None')
+                    raise
+                except Exception as send_error:
+                    logger.error("Email send error: %s", str(send_error))
+                    raise
+                
+                # Step 5: Clean disconnect
+                logger.info("Closing SMTP connection")
+                server.quit()
+                logger.info("SMTP connection closed successfully")
+                
+            except Exception as smtp_error:
+                # Log error to debug file
+                try:
+                    with open(debug_file_path, 'a', encoding='utf-8') as debug_file:
+                        debug_file.write(f"\n=== ERROR ===\n")
+                        debug_file.write(f"Error: {str(smtp_error)}\n")
+                        debug_file.write(f"Error type: {type(smtp_error).__name__}\n")
+                        debug_file.write(f"Timestamp: {datetime.now().isoformat()}\n")
+                except Exception as e:
+                    logger.warning("Failed to write error to debug file: %s", str(e))
+                
+                # Ensure server connection is closed
+                if server:
+                    try:
+                        server.quit()
+                        logger.info("SMTP connection closed after error")
+                    except Exception as close_error:
+                        logger.warning("Error closing SMTP connection: %s", str(close_error))
+                
+                raise smtp_error
             
             success_msg = f"Email sent successfully via SMTP to {self.recipient}"
             logger.info(success_msg)
@@ -154,6 +276,7 @@ class EmailSender:
         except Exception as e:
             error_msg = f"SMTP send failed: {str(e)}"
             logger.error(error_msg)
+            logger.info("Debug information written to: %s", debug_file_path)
             return False, "", error_msg
 
     def _check_mail_command_availability(self) -> Tuple[bool, str]:
@@ -171,7 +294,7 @@ class EmailSender:
     def _send_via_system_mail(self, subject: str, body: str, json_report_path: str = None) -> Tuple[bool, str, str]:
         """
         Send email via system mail command (fallback).
-        
+
         Args:
             subject: Email subject
             body: Email body content  
@@ -183,7 +306,7 @@ class EmailSender:
         # Check if mail command is available
         mail_available, mail_cmd = self._check_mail_command_availability()
         if not mail_available:
-            error_msg = "No mail command found on system. Please install mailutils, mailx, or similar package."
+            error_msg = "No mail command found on system. Please install mailutil, mailx, or similar package."
             logger.error(error_msg)
             return False, "", error_msg
 
@@ -379,8 +502,12 @@ class EmailSender:
 def main():
     """Test the email sender functionality."""
     # Configure logging
+    # Set log level based on environment variable
+    log_level_str = os.environ.get("LOG_LEVEL", "INFO").upper()
+    log_level = getattr(logging, log_level_str, logging.INFO)
+    
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=log_level,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
