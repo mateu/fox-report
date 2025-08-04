@@ -80,7 +80,7 @@ def generate_fox_report(nights: List[int],
             'total_events': len(events),
             'cameras_with_detections': 0,
             'average_confidence': 0.0,
-            'total_duration_minutes': 0.0
+            'total_duration_seconds': 0.0
         }
     }
     
@@ -102,17 +102,17 @@ def generate_fox_report(nights: List[int],
         report['events_by_camera'][camera].append(event)
         camera_stats[camera]['count'] += 1
         camera_stats[camera]['total_confidence'] += event['confidence']
-        camera_stats[camera]['total_duration'] += event['duration']
+        camera_stats[camera]['total_duration'] += event['duration_seconds']
         
         total_confidence += event['confidence']
-        total_duration += event['duration']
+        total_duration += event['duration_seconds']
     
     # Calculate summary statistics
     report['totals']['cameras_with_detections'] = len(report['events_by_camera'])
     report['totals']['average_confidence'] = (
         total_confidence / len(events) if events else 0.0
     )
-    report['totals']['total_duration_minutes'] = total_duration
+    report['totals']['total_duration_seconds'] = total_duration
     
     # Add per-camera statistics
     for camera, stats in camera_stats.items():
@@ -121,7 +121,7 @@ def generate_fox_report(nights: List[int],
             'stats': {
                 'event_count': stats['count'],
                 'average_confidence': stats['total_confidence'] / stats['count'],
-                'total_duration_minutes': stats['total_duration']
+                'total_duration_seconds': stats['total_duration']
             }
         }
     
@@ -165,7 +165,7 @@ def generate_markdown_report(report: Dict) -> str:
         f"**Total Events:** {report['totals']['total_events']}",
         f"**Cameras with Detections:** {report['totals']['cameras_with_detections']}",
         f"**Average Confidence:** {report['totals']['average_confidence']:.2f}",
-        f"**Total Duration:** {report['totals']['total_duration_minutes']:.1f} minutes",
+        f"**Total Duration:** {report['totals']['total_duration_seconds']:.1f} seconds",
         ""
     ])
     
@@ -198,7 +198,7 @@ def generate_markdown_report(report: Dict) -> str:
                 f"### {camera}",
                 f"- **Events:** {stats['event_count']}",
                 f"- **Average Confidence:** {stats['average_confidence']:.2f}",
-                f"- **Total Duration:** {stats['total_duration_minutes']:.1f} minutes",
+                f"- **Total Duration:** {stats['total_duration_seconds']:.1f} seconds",
                 ""
             ])
             
@@ -207,7 +207,7 @@ def generate_markdown_report(report: Dict) -> str:
             for event in events[:5]:  # Show up to 5 most recent
                 start_time = utc_to_mountain_time(event['start_time']).strftime('%m/%d %H:%M')
                 confidence_pct = event['confidence'] * 100
-                duration_str = f"{event['duration']:.1f}min" if event['duration'] > 0 else "N/A"
+                duration_str = f"{event['duration_seconds']:.1f}s" if event['duration_seconds'] > 0 else "N/A"
                 
                 md_lines.append(
                     f"- {start_time} | Confidence: {confidence_pct:.0f}% | "

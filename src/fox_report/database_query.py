@@ -27,7 +27,7 @@ def get_fox_events(nights: List[int], dusk_dawn_ranges: List[Tuple[datetime, dat
         List of dictionaries containing fox event data with keys:
         - confidence: Detection confidence score (0.0-1.0)
         - camera: Camera name that detected the event
-        - duration: Event duration in minutes
+        - duration: Event duration in seconds
         - thumbnail: Path to thumbnail image
         - clip: Boolean indicating if video clip is available
         - start_time: Event start timestamp (readable format)
@@ -56,9 +56,9 @@ def get_fox_events(nights: List[int], dusk_dawn_ranges: List[Tuple[datetime, dat
             datetime(end_time, 'unixepoch') as end_time_readable,
             CASE 
                 WHEN end_time IS NOT NULL AND start_time IS NOT NULL 
-                THEN (end_time - start_time) / 60.0 
+                THEN (end_time - start_time) 
                 ELSE 0.0 
-            END AS duration_minutes,
+            END AS duration_seconds,
             thumbnail,
             has_clip,
             zones,
@@ -97,7 +97,7 @@ def get_fox_events(nights: List[int], dusk_dawn_ranges: List[Tuple[datetime, dat
                     'camera': row[2],
                     'start_time': row[3],
                     'end_time': row[4],
-                    'duration': float(row[5]) if row[5] is not None else 0.0,
+                    'duration_seconds': float(row[5]) if row[5] is not None else 0.0,
                     'thumbnail': row[6],
                     'clip': bool(row[7]),
                     'zones': row[8],  # JSON data
