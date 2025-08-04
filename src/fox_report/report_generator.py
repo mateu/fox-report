@@ -159,20 +159,17 @@ def generate_markdown_report(report: Dict) -> str:
     # Header
     md_lines.extend([
 
-        "",
         f"**Generated:** {datetime.fromisoformat(report['metadata']['generated_at']).strftime('%Y-%m-%d %H:%M:%S %Z')}",
         f"**Nights Analyzed:** {report['metadata']['total_nights']} nights",
         f"**Total Events:** {report['totals']['total_events']}",
         f"**Cameras with Detections:** {report['totals']['cameras_with_detections']}",
         f"**Average Confidence:** {report['totals']['average_confidence']:.2f}",
         f"**Total Duration:** {report['totals']['total_duration_seconds']:.1f} seconds",
-        ""
     ])
     
     # Time ranges
     md_lines.extend([
         "## 📅 Analysis Time Ranges",
-        ""
     ])
     
     for date_range in report['metadata']['date_ranges']:
@@ -187,7 +184,6 @@ def generate_markdown_report(report: Dict) -> str:
     if report['events_by_camera']:
         md_lines.extend([
             "## 📹 Events by Camera",
-            ""
         ])
         
         for camera, camera_data in report['events_by_camera'].items():
@@ -217,7 +213,6 @@ def generate_markdown_report(report: Dict) -> str:
             if len(events) > 5:
                 md_lines.append(f"- ... and {len(events) - 5} more events")
             
-            md_lines.append("")
     else:
         md_lines.extend([
             "## 📹 Events by Camera",
