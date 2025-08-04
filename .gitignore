@@ -11,3 +11,10 @@ config/frigate.db-wal
 config/model_cache/
 storage/
 .env
+venv/
+__pycache__/
+
+# Directory-specific ignores
+logs/
+output/
+backups/*.py

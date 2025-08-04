@@ -9,14 +9,19 @@ Integrates report generation, JSON export, and email sending functionality.
 import os
 import sys
 import yaml
+
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 import json
 import logging
 import logging.handlers
 from datetime import datetime
 from typing import Optional
 
-from report_generator_enhanced import generate_fox_report, get_last_n_nights_data
-from email_sender_enhanced import send_fox_report_email
+from fox_report.report_generator import generate_fox_report, get_last_n_nights_data
+from fox_report.email.sender import EmailSender
 
 # Global logger instance
 logger = logging.getLogger(__name__)
@@ -114,7 +119,7 @@ def setup_logging(verbose: bool = False, quiet: bool = False, config: dict = Non
         root_logger.addHandler(console_handler)
 
 
-def load_config(config_path: str = 'config_template.yaml') -> dict:
+def load_config(config_path: str = 'config/template.yaml') -> dict:
     """
     Load configuration from YAML file.
     
@@ -161,7 +166,7 @@ def save_json_report(report: dict, output_path: str = None) -> str:
         raise
 
 
-def main(config_path: str = 'config_template.yaml', 
+def main(config_path: str = 'config/template.yaml', 
          nights: int = 3,
          json_output: str = None,
          send_email: bool = True,
@@ -221,9 +226,13 @@ def main(config_path: str = 'config_template.yaml',
         # Send email if requested
         if send_email:
             logger.info("Sending email report")
-            success, stdout, stderr = send_fox_report_email(
-                config, report, markdown_content, json_path
-            )
+            try:
+                email_sender = EmailSender(config)
+                success, stdout, stderr = email_sender.send_email(
+                    report, markdown_content, json_path
+                )
+            except Exception as e:
+                success, stdout, stderr = False, "", str(e)
             
             if success:
                 logger.info("Email report sent successfully")
@@ -259,8 +268,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         '--config', '-c',
-        default='config_template.yaml',
-        help='Configuration file path (default: config_template.yaml)'
+        default='config/template.yaml',
+        help='Configuration file path (default: config/template.yaml)'
     )
     parser.add_argument(
         '--nights', '-n',

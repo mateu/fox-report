@@ -22,7 +22,7 @@ class TimeResolver:
     Uses astral library with lat/lon from config, or falls back to static times.
     """
     
-    def __init__(self, config_file: str = "config_template.yaml"):
+    def __init__(self, config_file: str = "config/template.yaml"):
         """
         Initialize the TimeResolver with configuration.
         
@@ -270,7 +270,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='Calculate dusk/dawn times for observations')
-    parser.add_argument('--config', default='config_template.yaml', 
+    parser.add_argument('--config', default='config/template.yaml', 
                        help='Configuration file path')
     parser.add_argument('--date', type=str,
                        help='Target date (YYYY-MM-DD format, defaults to today)')

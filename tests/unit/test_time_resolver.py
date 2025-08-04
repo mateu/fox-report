@@ -6,7 +6,7 @@ This script demonstrates various use cases and validates the functionality.
 """
 
 from datetime import date, datetime
-from time_resolver import TimeResolver
+from fox_report.time_resolver import TimeResolver
 
 
 def test_basic_functionality():

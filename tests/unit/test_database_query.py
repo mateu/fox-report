@@ -5,8 +5,8 @@ Test script for the database query module.
 
 import logging
 from datetime import datetime, timedelta
-from time_resolver import TimeResolver
-from database_query import get_fox_events, get_fox_events_with_timeline_segments
+from fox_report.time_resolver import TimeResolver
+from fox_report.database_query import get_fox_events, get_fox_events_with_timeline_segments
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')

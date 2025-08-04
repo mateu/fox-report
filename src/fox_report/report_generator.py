@@ -11,11 +11,34 @@ import json
 import logging
 from datetime import datetime
 from typing import List, Dict, Tuple
-from database_query import get_fox_events
-from time_resolver import TimeResolver
+from zoneinfo import ZoneInfo
+from .database_query import get_fox_events
+from .time_resolver import TimeResolver
 
 # Configure logging using lazy formatting approach
 logger = logging.getLogger(__name__)
+
+
+# Mountain Time timezone
+MOUNTAIN_TZ = ZoneInfo("America/Denver")
+
+def utc_to_mountain_time(utc_datetime_str: str) -> datetime:
+    """
+    Convert UTC datetime string to Mountain Time datetime object.
+    
+    Args:
+        utc_datetime_str: ISO format UTC datetime string
+        
+    Returns:
+        datetime object converted to Mountain Time
+    """
+    # Parse the UTC datetime and add UTC timezone info
+    utc_dt = datetime.fromisoformat(utc_datetime_str)
+    if utc_dt.tzinfo is None:
+        utc_dt = utc_dt.replace(tzinfo=ZoneInfo("UTC"))
+    
+    # Convert to Mountain Time
+    return utc_dt.astimezone(MOUNTAIN_TZ)
 
 
 def generate_fox_report(nights: List[int], 
@@ -40,7 +63,7 @@ def generate_fox_report(nights: List[int],
     # Prepare report structure
     report = {
         'metadata': {
-            'generated_at': datetime.now().isoformat(),
+            'generated_at': datetime.now(MOUNTAIN_TZ).isoformat(),
             'nights_analyzed': nights,
             'total_nights': len(nights),
             'date_ranges': [
@@ -137,7 +160,7 @@ def generate_markdown_report(report: Dict) -> str:
     md_lines.extend([
         "# 🦊 Fox Detection Report",
         "",
-        f"**Generated:** {datetime.fromisoformat(report['metadata']['generated_at']).strftime('%Y-%m-%d %H:%M:%S')}",
+        f"**Generated:** {datetime.fromisoformat(report['metadata']['generated_at']).strftime('%Y-%m-%d %H:%M:%S %Z')},",
         f"**Nights Analyzed:** {report['metadata']['total_nights']} nights",
         f"**Total Events:** {report['totals']['total_events']}",
         f"**Cameras with Detections:** {report['totals']['cameras_with_detections']}",
@@ -153,11 +176,9 @@ def generate_markdown_report(report: Dict) -> str:
     ])
     
     for date_range in report['metadata']['date_ranges']:
-        dusk = datetime.fromisoformat(date_range['dusk'])
-        dawn = datetime.fromisoformat(date_range['dawn'])
         md_lines.append(
             f"- **Night {date_range['night']}:** "
-            f"{dusk.strftime('%m/%d %H:%M')} - {dawn.strftime('%m/%d %H:%M')}"
+            f"{utc_to_mountain_time(date_range['dusk']).strftime('%m/%d %H:%M')} - {utc_to_mountain_time(date_range['dawn']).strftime('%m/%d %H:%M')}"
         )
     
     md_lines.append("")
@@ -184,13 +205,13 @@ def generate_markdown_report(report: Dict) -> str:
             # List individual events
             md_lines.append("**Recent Events:**")
             for event in events[:5]:  # Show up to 5 most recent
-                start_time = datetime.fromisoformat(event['start_time']).strftime('%m/%d %H:%M')
+                start_time = utc_to_mountain_time(event['start_time']).strftime('%m/%d %H:%M')
                 confidence_pct = event['confidence'] * 100
                 duration_str = f"{event['duration']:.1f}min" if event['duration'] > 0 else "N/A"
                 
                 md_lines.append(
                     f"- {start_time} | Confidence: {confidence_pct:.0f}% | "
-                    f"Duration: {duration_str} | ID: {event['event_id']}"
+                    f"Duration: {duration_str} | ID: [{event['event_id']}](https://frig.mso.mt/api/events/{event['event_id']}/clip.mp4)"
                 )
             
             if len(events) > 5:
