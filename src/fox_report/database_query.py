@@ -46,10 +46,11 @@ def get_fox_events(nights: List[int], dusk_dawn_ranges: List[Tuple[datetime, dat
         
         # Define the SQL query to fetch fox events
         # Note: Frigate stores timestamps as Unix epoch floats
+        # Extract confidence from JSON data field
         query = """
         SELECT 
             id,
-            top_score,
+            json_extract(data, '$.score') as confidence_score,
             camera,
             datetime(start_time, 'unixepoch') as start_time_readable,
             datetime(end_time, 'unixepoch') as end_time_readable,
