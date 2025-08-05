@@ -100,3 +100,35 @@ The cron job uses `/home/hunter/fox-report/run_fox_report_cron.sh` which:
 ```bash
 chmod 700 /home/hunter/fox-report/run_fox_report_cron.sh
 ```
+
+## Security Best Practices
+
+### Credential Management
+
+The system uses environment variables for sensitive credentials, following these security practices:
+
+1. **Never commit credentials**: The `.env` file containing real credentials is in `.gitignore`
+2. **Use `.env.example`**: A template file with placeholder values is committed for reference
+3. **Secure file permissions**: Ensure `.env` has restricted permissions:
+   ```bash
+   chmod 600 .env
+   ```
+4. **Cron wrapper script**: The `run_fox_report_cron.sh` script safely loads credentials from `.env` without hardcoding them
+
+### Setting Up Credentials
+
+1. Copy the template: `cp .env.example .env`
+2. Edit `.env` with your actual Gmail app password
+3. Set proper permissions: `chmod 600 .env`
+4. The wrapper script will automatically load these variables for cron jobs
+
+### Git Repository Safety
+
+Files that should be committed:
+- `run_fox_report_cron.sh` (safe - loads credentials from .env)
+- `.env.example` (template with placeholders)
+- `.gitignore` (ensures .env is never committed)
+
+Files that should NEVER be committed:
+- `.env` (contains actual credentials)
+- Any file with hardcoded passwords
