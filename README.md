@@ -22,6 +22,8 @@ fox-report/
 │   ├── unit/
 │   └── fixtures/
 ├── docs/                  # Documentation
+│   ├── README.md         # Detailed technical documentation
+│   └── ops.md            # Operations and deployment guide
 └── requirements.txt       # Dependencies
 ```
 
@@ -51,8 +53,14 @@ fox-report/
 - **Clickable Event IDs**: Direct links to video clips in emails
 - **Hierarchical Structure**: Clean, maintainable code organization
 - **Comprehensive Testing**: Unit and integration tests
+- **Automated Scheduling**: Daily cron job with proper timezone handling
+
+## 🔧 Operations
+
+For deployment, scheduling, and maintenance information, see [`docs/ops.md`](docs/ops.md).
 
 ## 📖 Documentation
 
-See the `docs/` directory for detailed documentation.
-
+See the `docs/` directory for detailed documentation:
+- [`docs/README.md`](docs/README.md) - Technical documentation and API reference
+- [`docs/ops.md`](docs/ops.md) - Operations, deployment, and cron configuration
