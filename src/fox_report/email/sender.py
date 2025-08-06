@@ -122,17 +122,18 @@ class EmailSender:
             html_body = body
             image_cids = []
             
-            # Extract and replace base64 images with CID references
+            # Extract and replace base64 images with CID references, preserving anchor tags
             import re
-            pattern = r'<img src="data:image/jpeg;base64,([^"]+)" class="thumbnail"[^>]*>'
+            # Updated pattern to handle images inside anchor tags
+            pattern = r'(<a[^>]*>)?<img src="data:image/jpeg;base64,([^"]+)" class="thumbnail"[^>]*>(</a>)?'
             matches = list(re.finditer(pattern, html_body))
             
             for i, match in enumerate(matches):
                 cid = f"image{i}@frigate"
-                image_cids.append((cid, match.group(1)))
-                # Replace data URL with CID reference
+                image_cids.append((cid, match.group(2)))  # group(2) is now the base64 data
+                # Replace just the data URL with CID reference, keeping anchor tags intact
                 html_body = html_body.replace(
-                    f'data:image/jpeg;base64,{match.group(1)}',
+                    f'data:image/jpeg;base64,{match.group(2)}',
                     f'cid:{cid}'
                 )
             

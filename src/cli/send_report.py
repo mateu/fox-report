@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import copy
 """
 Frigate Fox Report Sender
 
@@ -141,7 +142,7 @@ def load_config(config_path: str = 'config/template.yaml') -> dict:
 
 def save_json_report(report: dict, output_path: str = None) -> str:
     """
-    Save report to JSON file.
+    Save report to JSON file (without thumbnails to reduce size).
     
     Args:
         report: Report dictionary to save
@@ -155,8 +156,18 @@ def save_json_report(report: dict, output_path: str = None) -> str:
         output_path = "/tmp/fox_report_%s.json" % date_str
     
     try:
+        # Create a copy of the report without thumbnails for JSON output
+        json_report = copy.deepcopy(report)
+        
+        # Remove thumbnails from the JSON version to reduce file size
+        for camera_data in json_report.get('events_by_camera', {}).values():
+            if isinstance(camera_data, dict) and 'events' in camera_data:
+                for event in camera_data['events']:
+                    if 'thumbnail' in event:
+                        del event['thumbnail']
+        
         with open(output_path, 'w') as f:
-            json.dump(report, f, indent=2, default=str)
+            json.dump(json_report, f, indent=2, default=str)
         
         logger.info("JSON report saved to %s", output_path)
         return output_path

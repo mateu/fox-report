@@ -333,6 +333,12 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
                 border-radius: 5px;
                 object-fit: cover;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                cursor: pointer;
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            .thumbnail:hover {
+                transform: scale(1.05);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
             }
             .event-details {
                 flex-grow: 1;
@@ -440,10 +446,12 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
                 
                 event_link = f'<a href="https://frig.mso.mt/api/events/{event["event_id"]}/clip.mp4">Event</a>'
                 
-                # Create event HTML with thumbnail
+                # Create event HTML with clickable thumbnail
                 thumbnail_html = ""
+                event_url = f'https://frig.mso.mt/api/events/{event["event_id"]}/clip.mp4'
                 if event.get('thumbnail'):
-                    thumbnail_html = f'<img src="data:image/jpeg;base64,{event["thumbnail"]}" class="thumbnail" alt="Fox detection thumbnail">'
+                    # Make thumbnail clickable - links to event video
+                    thumbnail_html = f'<a href="{event_url}" title="Click to view event video"><img src="data:image/jpeg;base64,{event["thumbnail"]}" class="thumbnail" alt="Fox detection thumbnail"></a>'
                 
                 html_parts.append(f"""
                 <div class="event">
