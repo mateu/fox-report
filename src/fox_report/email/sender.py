@@ -3,23 +3,26 @@
 Patched version with enhanced SMTP debugging
 """
 
-import os
-import sys
-import json
-import tempfile
-import subprocess
-import re
-import logging
-import shutil
-import smtplib
+from ..report_generator import generate_html_report_with_thumbnails
 from datetime import datetime
-from typing import Dict, Optional, Tuple
+from dotenv import load_dotenv
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-from email import encoders
 from jinja2 import Environment, FileSystemLoader, Template
-from dotenv import load_dotenv
+from typing import Dict, Optional, Tuple
+import base64
+import json
+import logging
+import os
+import re
+import shutil
+import smtplib
+import subprocess
+import sys
+import tempfile
 
 # Load environment variables from .env file
 load_dotenv()
@@ -85,6 +88,136 @@ class EmailSender:
             return False, "No SMTP password found in config or GMAIL_APP_PASSWORD environment variable"
             
         return True, ""
+
+
+    def _send_via_smtp_with_images(self, subject: str, body: str, report: dict, json_report_path: str = None) -> Tuple[bool, str, str]:
+        """
+        Send email via Gmail SMTP with properly embedded images.
+        
+        Args:
+            subject: Email subject
+            body: Email body content (HTML)
+            report: Report dictionary containing events with thumbnails
+            json_report_path: Path to JSON report file for attachment
+            
+        Returns:
+            Tuple of (success: bool, stdout: str, stderr: str)
+        """
+        debug_file_path = os.path.join(
+            tempfile.gettempdir(), 
+            f"smtp_debug_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        )
+        
+        try:
+            # Get password from config or environment
+            password = self.smtp_config.get('password') or os.getenv('GMAIL_APP_PASSWORD')
+            
+            # Create message with related parts for embedded images
+            msg = MIMEMultipart('related')
+            msg['From'] = self.smtp_config['username']
+            msg['To'] = self.recipient
+            msg['Subject'] = subject
+            
+            # Create the HTML part with Content-ID references
+            html_body = body
+            image_cids = []
+            
+            # Extract and replace base64 images with CID references
+            import re
+            pattern = r'<img src="data:image/jpeg;base64,([^"]+)" class="thumbnail"[^>]*>'
+            matches = list(re.finditer(pattern, html_body))
+            
+            for i, match in enumerate(matches):
+                cid = f"image{i}@frigate"
+                image_cids.append((cid, match.group(1)))
+                # Replace data URL with CID reference
+                html_body = html_body.replace(
+                    f'data:image/jpeg;base64,{match.group(1)}',
+                    f'cid:{cid}'
+                )
+            
+            # Attach the HTML body
+            msg_alternative = MIMEMultipart('alternative')
+            msg.attach(msg_alternative)
+            
+            # Add plain text alternative
+            text_part = MIMEText("Please view this email in HTML format to see the fox detection report with images.", 'plain')
+            msg_alternative.attach(text_part)
+            
+            # Add HTML part
+            html_part = MIMEText(html_body, 'html')
+            msg_alternative.attach(html_part)
+            
+            # Attach each image with its Content-ID
+            for cid, b64_data in image_cids:
+                try:
+                    image_data = base64.b64decode(b64_data)
+                    img = MIMEImage(image_data)
+                    img.add_header('Content-ID', f'<{cid}>')
+                    img.add_header('Content-Disposition', 'inline')
+                    msg.attach(img)
+                except Exception as e:
+                    logger.warning("Failed to attach image %s: %s", cid, str(e))
+            
+            # Add JSON attachment if provided
+            if json_report_path and os.path.exists(json_report_path):
+                try:
+                    with open(json_report_path, "rb") as attachment:
+                        part = MIMEBase('application', 'octet-stream')
+                        part.set_payload(attachment.read())
+                    
+                    encoders.encode_base64(part)
+                    part.add_header(
+                        'Content-Disposition',
+                        f'attachment; filename={os.path.basename(json_report_path)}'
+                    )
+                    msg.attach(part)
+                    logger.debug("Attached JSON report: %s", json_report_path)
+                except Exception as e:
+                    logger.warning("Failed to attach JSON report: %s", str(e))
+            
+            # Send the email (rest of the SMTP code remains the same)
+            full_message = msg.as_string()
+            
+            # Write debug info
+            try:
+                with open(debug_file_path, 'w', encoding='utf-8') as debug_file:
+                    debug_file.write("=== SMTP DEBUG LOG ===\n")
+                    debug_file.write(f"Timestamp: {datetime.now().isoformat()}\n")
+                    debug_file.write(f"Images embedded: {len(image_cids)}\n")
+                    debug_file.write("=== END DEBUG ===\n")
+            except:
+                pass
+            
+            # Connect and send
+            server = None
+            try:
+                server = smtplib.SMTP(self.smtp_config['server'], self.smtp_config['port'])
+                server.set_debuglevel(1)
+                
+                if self.smtp_config.get('use_tls', True):
+                    server.starttls()
+                
+                server.login(self.smtp_config['username'], password)
+                server.sendmail(self.smtp_config['username'], self.recipient, full_message)
+                
+                logger.info("Email with embedded images sent successfully")
+                return True, "Email sent successfully", ""
+                
+            except Exception as smtp_error:
+                raise smtp_error
+            finally:
+                if server:
+                    try:
+                        server.quit()
+                    except:
+                        pass
+                        
+        except Exception as e:
+            error_msg = f"SMTP send failed: {str(e)}"
+            logger.error(error_msg)
+            return False, "", error_msg
+
 
     def _send_via_smtp(self, subject: str, body: str, json_report_path: str = None) -> Tuple[bool, str, str]:
         """
@@ -380,73 +513,78 @@ class EmailSender:
             return self._render_text_body(report, markdown_content)
 
     def _render_html_body(self, report: Dict, markdown_content: str) -> str:
-        """Render HTML email body."""
-        # Convert markdown to HTML (basic conversion)
-        html_content = markdown_content.replace('\n', '<br>\n')
+        """Render HTML email body with inline thumbnails."""
+        try:
+            # Use the new HTML generator with thumbnails
+            return generate_html_report_with_thumbnails(report)
+        except Exception as e:
+            logger.warning("Failed to generate HTML with thumbnails, falling back to basic HTML: %s", str(e))
+            # Fallback to basic HTML conversion if the new method fails
+            html_content = markdown_content.replace('\n', '<br>\n')
+            
+            # Simple markdown to HTML conversion
+            lines = html_content.split('\n')
+            converted_lines = []
+            
+            for line in lines:
+                # Headers
+                if line.strip().startswith('# '):
+                    converted_lines.append(f'<h1>{line.strip()[2:]}</h1>')
+                elif line.strip().startswith('## '):
+                    converted_lines.append(f'<h2>{line.strip()[3:]}</h2>')
+                elif line.strip().startswith('### '):
+                    converted_lines.append(f'<h3>{line.strip()[4:]}</h3>')
+                # Bold text
+                elif '**' in line:
+                    line = line.replace('**', '<strong>', 1).replace('**', '</strong>', 1)
+                    converted_lines.append(line)
+                # Convert markdown links [text](url) to HTML links
+                elif "[" in line and "](" in line and ")" in line:
+                    # Use regex to convert markdown links to HTML
+                    line = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', line)
+                    converted_lines.append(line)
+                # List items
+                elif line.strip().startswith('- '):
+                    converted_lines.append(f'<li>{line.strip()[2:]}</li>')
+                else:
+                    converted_lines.append(line)
+            
+            html_content = '\n'.join(converted_lines)
+            
+            # Create HTML template
+            html_template = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Fox Detection Report</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .summary { margin: 20px 0; }
+            .footer { margin-top: 30px; font-size: 0.9em; color: #666; }
+            h1, h2, h3 { color: #333; }
+            li { margin: 5px 0; }
+        </style>
+    </head>
+    <body>
         
-        # Simple markdown to HTML conversion
-        lines = html_content.split('\n')
-        converted_lines = []
+        <div class="summary">
+            {{ content | safe }}
+        </div>
         
-        for line in lines:
-            # Headers
-            if line.strip().startswith('# '):
-                converted_lines.append(f'<h1>{line.strip()[2:]}</h1>')
-            elif line.strip().startswith('## '):
-                converted_lines.append(f'<h2>{line.strip()[3:]}</h2>')
-            elif line.strip().startswith('### '):
-                converted_lines.append(f'<h3>{line.strip()[4:]}</h3>')
-            # Bold text
-            elif '**' in line:
-                line = line.replace('**', '<strong>', 1).replace('**', '</strong>', 1)
-                converted_lines.append(line)
-            # Convert markdown links [text](url) to HTML links
-            elif "[" in line and "](" in line and ")" in line:
-                # Use regex to convert markdown links to HTML
-                line = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', line)
-                converted_lines.append(line)
-            # List items
-            elif line.strip().startswith('- '):
-                converted_lines.append(f'<li>{line.strip()[2:]}</li>')
-            else:
-                converted_lines.append(line)
-        
-        html_content = '\n'.join(converted_lines)
-        
-        # Create HTML template
-        html_template = """
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Fox Detection Report</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .summary { margin: 20px 0; }
-        .footer { margin-top: 30px; font-size: 0.9em; color: #666; }
-        h1, h2, h3 { color: #333; }
-        li { margin: 5px 0; }
-    </style>
-</head>
-<body>
-    
-    <div class="summary">
-        {{ content | safe }}
-    </div>
-    
-    <div class="footer">
-        <p>This report was automatically generated by the Frigate Fox Detection System.</p>
-        <p>Report data is attached as JSON for further analysis.</p>
-    </div>
-</body>
-</html>
-        """
-        
-        template = Template(html_template)
-        return template.render(
-            generation_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            content=html_content
-        )
+        <div class="footer">
+            <p>This report was automatically generated by the Frigate Fox Detection System.</p>
+            <p>Report data is attached as JSON for further analysis.</p>
+        </div>
+    </body>
+    </html>
+            """
+            
+            template = Template(html_template)
+            return template.render(
+                generation_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                content=html_content
+            )
 
     def _render_text_body(self, report: Dict, markdown_content: str) -> str:
         """Render plain text email body."""
@@ -487,7 +625,11 @@ class EmailSender:
             smtp_valid, smtp_error = self._check_smtp_config()
             if smtp_valid:
                 logger.info("Attempting to send via Gmail SMTP")
-                success, stdout, stderr = self._send_via_smtp(subject, email_body, json_report_path)
+                # Use image-aware sending for HTML emails with thumbnails
+                if self.format_type == 'html' and isinstance(report, dict) and report.get('events_by_camera'):
+                    success, stdout, stderr = self._send_via_smtp_with_images(subject, email_body, report, json_report_path)
+                else:
+                    success, stdout, stderr = self._send_via_smtp(subject, email_body, json_report_path)
                 if success:
                     return success, stdout, stderr
                 else:
