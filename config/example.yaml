@@ -1,0 +1,80 @@
+# Fox Report Configuration Example
+# Copy this file to create your own configuration
+
+# Frigate integration settings
+frigate:
+  # Path to your Frigate database file
+  # Common locations:
+  #   - /opt/frigate/config/frigate.db
+  #   - /var/lib/frigate/frigate.db  
+  #   - ./config/frigate.db
+  database_path: "/path/to/your/frigate/config/frigate.db"
+  
+  # Frigate web UI base URL (without trailing slash)
+  # Examples:
+  #   - https://your-frigate-host.com
+  #   - http://192.168.1.100:5000
+  #   - https://frigate.mydomain.com
+  base_url: "https://your-frigate-host.com"
+
+# Number of nights to analyze in reports
+nights:
+  count: 3
+
+# Email notification settings
+email:
+  # Email recipient
+  recipient: "your-email@example.com"
+  
+  # Email format preference
+  format: "html"  # Options: html, text
+  
+  # SMTP configuration
+  smtp:
+    enabled: true
+    server: "smtp.gmail.com"  # For Gmail
+    port: 587
+    use_tls: true
+    username: "your-email@gmail.com"
+    # Password should be set via GMAIL_APP_PASSWORD environment variable
+    # Get an app password from: https://myaccount.google.com/apppasswords
+
+# Geographic location for sunset/sunrise calculations
+# Get your coordinates from: https://www.latlong.net/
+location:
+  # Coordinates in decimal degrees
+  latitude: 40.7128   # New York City example
+  longitude: -74.0060
+  
+  # Timezone (use your local timezone)
+  # Examples: America/New_York, America/Chicago, America/Denver, America/Los_Angeles
+  # Europe/London, Europe/Paris, Asia/Tokyo, etc.
+  timezone: "America/New_York"
+  
+  # Elevation in meters (optional, affects twilight calculations)
+  elevation: 10
+
+# Output and logging settings
+output:
+  # Verbosity level: 0=quiet, 1=normal, 2=verbose, 3=debug
+  verbosity: 1
+  
+  # Directory for temporary files and JSON reports
+  temp_dir: "/tmp"
+  
+  # Log file location
+  log_file: "/tmp/fox_report.log"
+  
+  # Enable system logging
+  use_syslog: false
+
+# Advanced settings (optional)
+advanced:
+  # Twilight type for dusk/dawn calculations
+  twilight_type: "nautical"  # Options: civil, nautical, astronomical
+  
+  # Buffer time in minutes before/after calculated times
+  buffer_minutes: 15
+  
+  # Maximum events to show per camera in email
+  max_events_per_camera: 10

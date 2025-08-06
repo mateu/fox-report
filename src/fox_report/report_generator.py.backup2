@@ -37,45 +37,7 @@ def generate_timeline_url(camera: str, start_timestamp: float, end_timestamp: fl
     padded_end = int(end_timestamp + padding) if end_timestamp > 0 else int(start_timestamp + padding + 10)
 
     # Generate the URL
-    base_url = get_frigate_base_url()
-    return f"{base_url}/api/{camera}/start/{padded_start}/end/{padded_end}/clip.mp4"
-
-
-
-def get_frigate_base_url():
-    """Get Frigate base URL from config or environment."""
-    import os
-    from pathlib import Path
-    
-    # Try environment variable first
-    base_url = os.getenv('FRIGATE_BASE_URL')
-    
-    if not base_url:
-        # Try to read from config
-        config_files = [
-            'config/gmail.yaml',
-            'config/template.yaml',
-            '/etc/fox-report/config.yaml'
-        ]
-        
-        for config_file in config_files:
-            if Path(config_file).exists():
-                try:
-                    import yaml
-                    with open(config_file, 'r') as f:
-                        config = yaml.safe_load(f)
-                    base_url = config.get('frigate', {}).get('base_url')
-                    if base_url:
-                        break
-                except Exception:
-                    continue
-    
-    # Default fallback
-    if not base_url:
-        base_url = 'https://frig.mso.mt'
-        logger.warning("No Frigate base URL configured. Using default: %s", base_url)
-    
-    return base_url.rstrip('/')  # Remove trailing slash
+    return f"https://frig.mso.mt/api/{camera}/start/{padded_start}/end/{padded_end}/clip.mp4"
 
 
 # Mountain Time timezone
@@ -192,19 +154,8 @@ def generate_fox_report(nights: List[int],
         output_file = datetime.now().strftime('/tmp/fox_report_%Y%m%d.json')
 
     try:
-        # Create a copy of the report without thumbnails for JSON output
-        import copy
-        json_report = copy.deepcopy(report)
-        
-        # Remove thumbnails from the JSON version to reduce file size
-        for camera_data in json_report.get('events_by_camera', {}).values():
-            if isinstance(camera_data, dict) and 'events' in camera_data:
-                for event in camera_data['events']:
-                    if 'thumbnail' in event:
-                        del event['thumbnail']
-        
         with open(output_file, 'w') as json_file:
-            json.dump(json_report, json_file, indent=2, default=str)
+            json.dump(report, json_file, indent=2, default=str)
         logger.info("Report written to %s", output_file)
         print(f"✓ JSON report written to: {output_file}")
     except Exception as e:
@@ -286,10 +237,10 @@ def generate_markdown_report(report: Dict) -> str:
                     )
                     timeline_link = f" | [Timeline]({timeline_url})"
 
-                base_url = get_frigate_base_url()
                 md_lines.append(
                     f"- {start_time} | Confidence: {confidence_pct:.0f}% | "
-                    f"Duration: {duration_str} | [Event]({base_url}/api/events/{event['event_id']}/clip.mp4){timeline_link}")
+                    f"Duration: {duration_str} | [Event](https://frig.mso.mt/api/events/{event['event_id']}/clip.mp4){timeline_link}"
+                )
 
             if len(events) > 5:
                 md_lines.append(f"- ... and {len(events) - 5} more events")
@@ -303,235 +254,6 @@ def generate_markdown_report(report: Dict) -> str:
         ])
 
     return "\n".join(md_lines)
-
-
-
-
-def generate_html_report_with_thumbnails(report: Dict) -> str:
-    """
-    Generate HTML report with inline thumbnail images.
-    
-    Args:
-        report: The structured report dictionary
-        
-    Returns:
-        HTML formatted string with embedded thumbnails
-    """
-    html_parts = []
-    
-    # HTML header with styling
-    html_parts.append("""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <title>Fox Detection Report</title>
-        <style>
-            body { 
-                font-family: Arial, sans-serif; 
-                margin: 20px; 
-                background-color: #f5f5f5;
-            }
-            .container {
-                max-width: 900px;
-                margin: 0 auto;
-                background-color: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-            h1 { color: #333; border-bottom: 2px solid #ff6b35; padding-bottom: 10px; }
-            h2 { color: #555; margin-top: 30px; }
-            h3 { color: #666; }
-            .summary { 
-                background-color: #f8f9fa; 
-                padding: 15px; 
-                border-radius: 5px; 
-                margin: 20px 0;
-            }
-            .camera-section {
-                margin: 20px 0;
-                padding: 15px;
-                background-color: #fafafa;
-                border-radius: 5px;
-            }
-            .event {
-                display: flex;
-                align-items: center;
-                margin: 15px 0;
-                padding: 10px;
-                background-color: white;
-                border: 1px solid #e0e0e0;
-                border-radius: 5px;
-            }
-            .thumbnail {
-                width: 120px;
-                height: 120px;
-                margin-right: 15px;
-                border-radius: 5px;
-                object-fit: cover;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                cursor: pointer;
-                transition: transform 0.2s, box-shadow 0.2s;
-            }
-            .thumbnail:hover {
-                transform: scale(1.05);
-                box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            }
-            .event-details {
-                flex-grow: 1;
-            }
-            .event-time {
-                font-weight: bold;
-                color: #333;
-                margin-bottom: 5px;
-            }
-            .event-info {
-                color: #666;
-                margin: 3px 0;
-            }
-            .event-links {
-                margin-top: 8px;
-            }
-            .event-links a {
-                margin-right: 10px;
-                padding: 4px 8px;
-                background-color: #007bff;
-                color: white;
-                text-decoration: none;
-                border-radius: 3px;
-                font-size: 14px;
-            }
-            .event-links a:hover {
-                background-color: #0056b3;
-            }
-            .footer { 
-                margin-top: 30px; 
-                padding-top: 20px;
-                border-top: 1px solid #e0e0e0;
-                font-size: 0.9em; 
-                color: #666; 
-                text-align: center;
-            }
-            .no-events {
-                text-align: center;
-                padding: 40px;
-                color: #999;
-            }
-        </style>
-    </head>
-    <body>
-    <div class="container">
-    """)
-    
-    # Title and summary
-    html_parts.append(f"""
-    <h1>🦊 Fox Detection Report</h1>
-    <div class="summary">
-        <strong>Generated:</strong> {datetime.fromisoformat(report['metadata']['generated_at']).strftime('%Y-%m-%d %H:%M:%S %Z')}<br>
-        <strong>Nights Analyzed:</strong> {report['metadata']['total_nights']}<br>
-        <strong>Total Events:</strong> {report['totals']['total_events']}<br>
-        <strong>Cameras with Detections:</strong> {report['totals']['cameras_with_detections']}<br>
-        <strong>Average Confidence:</strong> {report['totals']['average_confidence']:.2f}<br>
-        <strong>Total Duration:</strong> {report['totals']['total_duration_seconds']:.1f} seconds
-    </div>
-    """)
-    
-    # Time ranges
-    html_parts.append("<h2>📅 Analysis Time Ranges</h2><ul>")
-    for date_range in report['metadata']['date_ranges']:
-        html_parts.append(
-            f"<li><strong>Night {date_range['night']}:</strong> "
-            f"{utc_to_mountain_time(date_range['dusk']).strftime('%m/%d %H:%M')} - "
-            f"{utc_to_mountain_time(date_range['dawn']).strftime('%m/%d %H:%M')}</li>"
-        )
-    html_parts.append("</ul>")
-    
-    # Events by camera
-    if report['events_by_camera']:
-        html_parts.append("<h2>📹 Events by Camera</h2>")
-        
-        for camera, camera_data in report['events_by_camera'].items():
-            events = camera_data['events']
-            stats = camera_data['stats']
-            
-            html_parts.append(f"""
-            <div class="camera-section">
-                <h3>{camera}</h3>
-                <div class="event-info">
-                    <strong>Events:</strong> {stats['event_count']} | 
-                    <strong>Average Confidence:</strong> {stats['average_confidence']:.2f} | 
-                    <strong>Total Duration:</strong> {stats['total_duration_seconds']:.1f} seconds
-                </div>
-            """)
-            
-            # Show individual events with thumbnails
-            for event in events[:10]:  # Show up to 10 events
-                start_time = utc_to_mountain_time(event['start_time']).strftime('%m/%d %H:%M')
-                confidence_pct = event['confidence'] * 100
-                duration_str = f"{event['duration_seconds']:.1f}s" if event['duration_seconds'] > 0 else "N/A"
-                
-                # Generate timeline URL if we have timestamps
-                timeline_link = ""
-                if 'start_timestamp' in event and 'end_timestamp' in event:
-                    timeline_url = generate_timeline_url(
-                        event['camera'],
-                        event['start_timestamp'],
-                        event['end_timestamp'],
-                        padding=5
-                    )
-                    timeline_link = f'<a href="{timeline_url}">Timeline</a>'
-                
-                base_url = get_frigate_base_url()
-                event_link = f'<a href="{base_url}/api/events/{event["event_id"]}/clip.mp4">Event</a>'
-                
-                # Create event HTML with clickable thumbnail
-                thumbnail_html = ""
-                base_url = get_frigate_base_url()
-                event_url = f'{base_url}/api/events/{event["event_id"]}/clip.mp4'
-                if event.get('thumbnail'):
-                    # Make thumbnail clickable - links to event video
-                    thumbnail_html = f'<a href="{event_url}" title="Click to view event video"><img src="data:image/jpeg;base64,{event["thumbnail"]}" class="thumbnail" alt="Fox detection thumbnail"></a>'
-                
-                html_parts.append(f"""
-                <div class="event">
-                    {thumbnail_html}
-                    <div class="event-details">
-                        <div class="event-time">{start_time}</div>
-                        <div class="event-info">Confidence: {confidence_pct:.0f}%</div>
-                        <div class="event-info">Duration: {duration_str}</div>
-                        <div class="event-links">
-                            {event_link}
-                            {timeline_link}
-                        </div>
-                    </div>
-                </div>
-                """)
-            
-            if len(events) > 10:
-                html_parts.append(f'<p style="text-align: center; color: #999;">... and {len(events) - 10} more events</p>')
-            
-            html_parts.append("</div>")
-    else:
-        html_parts.append("""
-        <div class="no-events">
-            <h2>No Fox Detections</h2>
-            <p>No fox detections were found in the analyzed time period.</p>
-        </div>
-        """)
-    
-    # Footer
-    html_parts.append("""
-    <div class="footer">
-        <p>This report was automatically generated by the Frigate Fox Detection System.</p>
-        <p>Full report data is available in the attached JSON file.</p>
-    </div>
-    </div>
-    </body>
-    </html>
-    """)
-    
-    return ''.join(html_parts)
 
 
 def get_last_n_nights_data(num_nights: int = 3) -> Tuple[List[int], List[Tuple[datetime, datetime]]]:

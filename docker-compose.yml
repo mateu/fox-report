@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  fox-report:
+    build: .
+    volumes:
+      # Mount your config directory
+      - ./config:/app/config
+      # Mount Frigate database (read-only)
+      - /home/hunter/frigate/config:/frigate/config:ro
+      # Mount for log output
+      - ./logs:/app/logs
+    environment:
+      # Gmail app password
+      - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD}
+      # Override database path to match mounted volume
+      - FRIGATE_DB_PATH=/frigate/config/frigate.db
+      # Override Frigate URL if needed
+      - FRIGATE_BASE_URL=${FRIGATE_BASE_URL:-https://frig.mso.mt}
+    restart: unless-stopped
+    # Uncomment to run on a schedule (daily at 8 AM)
+    # command: >
+    #   sh -c "
+    #     while true; do
+    #       if [ $$(date +%H%M) = '0800' ]; then
+    #         python -m src.cli.send_report --config config/config.yaml
+    #       fi
+    #       sleep 60
+    #     done
+    #   "

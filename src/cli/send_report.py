@@ -21,8 +21,8 @@ import logging.handlers
 from datetime import datetime
 from typing import Optional
 
-from fox_report.report_generator import generate_fox_report, get_last_n_nights_data
-from fox_report.email.sender import EmailSender
+from src.fox_report.report_generator import generate_fox_report, get_last_n_nights_data
+from src.fox_report.email.sender import EmailSender
 
 # Global logger instance
 logger = logging.getLogger(__name__)
@@ -120,7 +120,7 @@ def setup_logging(verbose: bool = False, quiet: bool = False, config: dict = Non
         root_logger.addHandler(console_handler)
 
 
-def load_config(config_path: str = 'config/template.yaml') -> dict:
+def load_config(config_path: str = 'config/config.yaml') -> dict:
     """
     Load configuration from YAML file.
     
@@ -153,7 +153,24 @@ def save_json_report(report: dict, output_path: str = None) -> str:
     """
     if not output_path:
         date_str = datetime.now().strftime('%Y%m%d')
-        output_path = "/tmp/fox_report_%s.json" % date_str
+        # Get temp directory from config or environment
+        temp_dir = os.getenv('FOX_REPORT_TEMP_DIR', '/tmp')
+        
+        # Try to read from config file if not in environment
+        if temp_dir == '/tmp':
+            try:
+                config_files = ['config/gmail.yaml', 'config/config.yaml']
+                for config_file in config_files:
+                    if os.path.exists(config_file):
+                        import yaml
+                        with open(config_file, 'r') as f:
+                            config = yaml.safe_load(f)
+                        temp_dir = config.get('output', {}).get('temp_dir', '/tmp')
+                        break
+            except Exception:
+                temp_dir = '/tmp'
+        
+        output_path = os.path.join(temp_dir, f"fox_report_{date_str}.json")
     
     try:
         # Create a copy of the report without thumbnails for JSON output
@@ -177,7 +194,7 @@ def save_json_report(report: dict, output_path: str = None) -> str:
         raise
 
 
-def main(config_path: str = 'config/template.yaml', 
+def main(config_path: str = 'config/config.yaml', 
          nights: int = 3,
          json_output: str = None,
          send_email: bool = True,
@@ -279,8 +296,8 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         '--config', '-c',
-        default='config/template.yaml',
-        help='Configuration file path (default: config/template.yaml)'
+        default='config/config.yaml',
+        help='Configuration file path (default: config/config.yaml)'
     )
     parser.add_argument(
         '--nights', '-n',

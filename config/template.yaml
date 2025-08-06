@@ -1,23 +1,37 @@
-# Night Observation Configuration Template
-# This file contains default settings for night observation scheduling
+# Fox Report Configuration Template
+# Copy this file to create your own configuration
 
-# Default observation settings
-nights:
-  # Number of nights to schedule (integer)
-  count: 7
+# Frigate integration settings
+frigate:
+  # Path to Frigate database file
+  database_path: "/home/hunter/frigate/config/frigate.db"
   
-  # Default start and end times (ISO format or 'sunset'/'sunrise')
-  # Can be overridden by geographic calculations
-  start: "sunset"
-  end: "sunrise"
+  # Frigate web UI base URL (without trailing slash)
+  base_url: "https://frig.mso.mt"
+  
+  # Alternative: if using different ports or local access
+  # base_url: "http://192.168.1.100:5000"
+
+# Number of nights to analyze in reports
+nights:
+  count: 3
 
 # Email notification settings
 email:
-  # Default recipient for observation reports
+  # Email recipient
   recipient: "hunter@406mt.org"
   
   # Email format preference
-  format: "html"  # Options: html, text, json
+  format: "html"  # Options: html, text
+  
+  # SMTP configuration for Gmail
+  smtp:
+    enabled: true
+    server: "smtp.gmail.com"
+    port: 587
+    use_tls: true
+    username: "hunter@406mt.org"
+    # Password should be set via GMAIL_APP_PASSWORD environment variable
 
 # Geographic location for sunset/sunrise calculations
 location:
@@ -25,38 +39,33 @@ location:
   latitude: 46.9080
   longitude: -114.0722 
   
-  # Optional: timezone (if not specified, will be calculated from coordinates)
+  # Timezone (Mountain Time with daylight savings)
   timezone: "America/Denver"
   
   # Elevation in meters (affects twilight calculations)
   elevation: 980
-
-# Alternative: Static time configuration (overrides location-based calculations)
-# Uncomment to use fixed times instead of geographic calculations
-static_times:
-  enabled: false
-  start_time: "20:00"  # 24-hour format
-  end_time: "06:00"
 
 # Output and logging settings
 output:
   # Verbosity level: 0=quiet, 1=normal, 2=verbose, 3=debug
   verbosity: 1
   
+  # Directory for temporary files and reports
+  temp_dir: "/tmp"
+  
   # Log file location (uses rotating file handler)
-  # File will rotate at 10MB with 5 backup copies
-  log_file: /tmp/fox_report.log
+  log_file: "/tmp/fox_report.log"
   
-  # Enable syslog logging (writes to system log)
-  use_syslog: true
-  
-  # Output format for reports
-  format: "table"  # Options: table, json, csv, yaml
+  # Enable syslog logging
+  use_syslog: false
 
 # Advanced settings
 advanced:
-  # Astronomical twilight types for calculations
+  # Astronomical twilight type for dusk/dawn calculations
   twilight_type: "nautical"  # Options: civil, nautical, astronomical
   
   # Buffer time in minutes before/after calculated times
   buffer_minutes: 15
+  
+  # Maximum number of events to show per camera in email
+  max_events_per_camera: 10

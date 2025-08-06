@@ -18,3 +18,4 @@ __pycache__/
 logs/
 output/
 backups/*.py
+config/config.yaml
