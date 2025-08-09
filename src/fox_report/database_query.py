@@ -6,16 +6,17 @@ This module provides functions for querying the Frigate database to retrieve
 fox detection events within specified time ranges.
 """
 
-import sqlite3
 import logging
-from typing import List, Dict, Tuple
+import sqlite3
 from datetime import datetime
 
 # Configure logging using lazy formatting approach
 logger = logging.getLogger(__name__)
 
 
-def get_fox_events(nights: List[int], dusk_dawn_ranges: List[Tuple[datetime, datetime]]) -> List[Dict]:
+def get_fox_events(
+    nights: list[int], dusk_dawn_ranges: list[tuple[datetime, datetime]]
+) -> list[dict]:
     """
     Retrieve fox detection events from the Frigate database for specified nights.
 
@@ -37,7 +38,7 @@ def get_fox_events(nights: List[int], dusk_dawn_ranges: List[Tuple[datetime, dat
         - event_id: Unique event identifier
     """
     # Path to Frigate database
-    db_path = '/home/hunter/frigate/config/frigate.db'
+    db_path = "/home/hunter/frigate/config/frigate.db"
 
     logger.info("Connecting to Frigate database at %s", db_path)
 
@@ -82,35 +83,40 @@ def get_fox_events(nights: List[int], dusk_dawn_ranges: List[Tuple[datetime, dat
 
         # Execute the query for each dusk/dawn range
         for i, (dusk, dawn) in enumerate(dusk_dawn_ranges):
-            logger.debug("Querying night %d: %s to %s",
-                        nights[i] if i < len(nights) else i,
-                        dusk.strftime('%Y-%m-%d %H:%M:%S'),
-                        dawn.strftime('%Y-%m-%d %H:%M:%S'))
+            logger.debug(
+                "Querying night %d: %s to %s",
+                nights[i] if i < len(nights) else i,
+                dusk.strftime("%Y-%m-%d %H:%M:%S"),
+                dawn.strftime("%Y-%m-%d %H:%M:%S"),
+            )
 
             cursor.execute(query, (dusk.isoformat(), dawn.isoformat()))
             rows = cursor.fetchall()
 
-            logger.debug("Found %d fox events for night %d", len(rows),
-                        nights[i] if i < len(nights) else i)
+            logger.debug(
+                "Found %d fox events for night %d",
+                len(rows),
+                nights[i] if i < len(nights) else i,
+            )
 
             # Process each row
             for row in rows:
                 event = {
-                    'event_id': row[0],
-                    'confidence': float(row[1]) if row[1] is not None else 0.0,
-                    'camera': row[2],
-                    'start_time': row[3],
-                    'end_time': row[4],
-                    'duration_seconds': float(row[5]) if row[5] is not None else 0.0,
-                    'thumbnail': row[6],
-                    'clip': bool(row[7]),
-                    'zones': row[8],  # JSON data
-                    'sub_label': row[9],
-                    'area': row[10],
-                    'box': row[11],  # JSON data for bounding box
-                    'start_timestamp': float(row[12]) if row[12] is not None else 0.0,
-                    'end_timestamp': float(row[13]) if row[13] is not None else 0.0,
-                    'night_index': nights[i] if i < len(nights) else i
+                    "event_id": row[0],
+                    "confidence": float(row[1]) if row[1] is not None else 0.0,
+                    "camera": row[2],
+                    "start_time": row[3],
+                    "end_time": row[4],
+                    "duration_seconds": float(row[5]) if row[5] is not None else 0.0,
+                    "thumbnail": row[6],
+                    "clip": bool(row[7]),
+                    "zones": row[8],  # JSON data
+                    "sub_label": row[9],
+                    "area": row[10],
+                    "box": row[11],  # JSON data for bounding box
+                    "start_timestamp": float(row[12]) if row[12] is not None else 0.0,
+                    "end_timestamp": float(row[13]) if row[13] is not None else 0.0,
+                    "night_index": nights[i] if i < len(nights) else i,
                 }
                 results.append(event)
 
@@ -124,16 +130,18 @@ def get_fox_events(nights: List[int], dusk_dawn_ranges: List[Tuple[datetime, dat
         raise
     finally:
         # Ensure database connection is closed
-        if 'conn' in locals():
+        if "conn" in locals():
             conn.close()
             logger.debug("Database connection closed")
 
     return results
 
 
-def get_fox_events_with_timeline_segments(nights: List[int],
-                                        dusk_dawn_ranges: List[Tuple[datetime, datetime]],
-                                        include_timeline: bool = True) -> List[Dict]:
+def get_fox_events_with_timeline_segments(
+    nights: list[int],
+    dusk_dawn_ranges: list[tuple[datetime, datetime]],
+    include_timeline: bool = True,
+) -> list[dict]:
     """
     Enhanced version that can optionally attach timeline segments if useful.
 
@@ -154,7 +162,7 @@ def get_fox_events_with_timeline_segments(nights: List[int],
     logger.info("Attaching timeline segments to %d fox events", len(events))
 
     # Add timeline segments for each event
-    db_path = '/home/hunter/frigate/config/frigate.db'
+    db_path = "/home/hunter/frigate/config/frigate.db"
 
     try:
         conn = sqlite3.connect(db_path)
@@ -179,38 +187,40 @@ def get_fox_events_with_timeline_segments(nights: List[int],
                 ORDER BY timestamp
                 """
 
-                cursor.execute(segment_query, (
-                    event['camera'],
-                    event['start_time'],
-                    event['end_time']
-                ))
+                cursor.execute(
+                    segment_query,
+                    (event["camera"], event["start_time"], event["end_time"]),
+                )
 
                 segments = cursor.fetchall()
-                event['timeline_segments'] = [
+                event["timeline_segments"] = [
                     {
-                        'timestamp': seg[0],
-                        'camera': seg[1],
-                        'source_id': seg[2],
-                        'class_type': seg[3],
-                        'data': seg[4]
+                        "timestamp": seg[0],
+                        "camera": seg[1],
+                        "source_id": seg[2],
+                        "class_type": seg[3],
+                        "data": seg[4],
                     }
                     for seg in segments
                 ]
 
-                logger.debug("Added %d timeline segments to event %s",
-                           len(segments), event['event_id'])
+                logger.debug(
+                    "Added %d timeline segments to event %s",
+                    len(segments),
+                    event["event_id"],
+                )
         else:
             logger.warning("Timeline table not found in database")
             for event in events:
-                event['timeline_segments'] = []
+                event["timeline_segments"] = []
 
     except sqlite3.Error as e:
         logger.error("Error querying timeline segments: %s", str(e))
         # Continue without timeline segments rather than failing
         for event in events:
-            event['timeline_segments'] = []
+            event["timeline_segments"] = []
     finally:
-        if 'conn' in locals():
+        if "conn" in locals():
             conn.close()
 
     return events
@@ -223,7 +233,7 @@ def test_database_connection() -> bool:
     Returns:
         True if connection successful, False otherwise
     """
-    db_path = '/home/hunter/frigate/config/frigate.db'
+    db_path = "/home/hunter/frigate/config/frigate.db"
 
     try:
         conn = sqlite3.connect(db_path)
@@ -233,7 +243,9 @@ def test_database_connection() -> bool:
         cursor.execute("SELECT COUNT(*) FROM event WHERE label='fox'")
         fox_count = cursor.fetchone()[0]
 
-        logger.info("Database connection successful. Found %d fox events total", fox_count)
+        logger.info(
+            "Database connection successful. Found %d fox events total", fox_count
+        )
         conn.close()
         return True
 

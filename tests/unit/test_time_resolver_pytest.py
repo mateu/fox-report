@@ -3,13 +3,13 @@
 Pytest test suite for time_resolver module.
 """
 
-import pytest
 import tempfile
-import yaml
-from datetime import datetime, date, timedelta
-from unittest.mock import patch, MagicMock
-import pytz
+from datetime import date, datetime, timedelta
+from unittest.mock import patch
 
+import pytest
+import pytz
+import yaml
 from time_resolver_enhanced import TimeResolver
 
 
@@ -17,20 +17,14 @@ from time_resolver_enhanced import TimeResolver
 def sample_config():
     """Create a sample configuration for testing."""
     return {
-        'location': {
-            'latitude': 46.9080,
-            'longitude': -114.0722,
-            'timezone': 'America/Denver',
-            'elevation': 980
+        "location": {
+            "latitude": 46.9080,
+            "longitude": -114.0722,
+            "timezone": "America/Denver",
+            "elevation": 980,
         },
-        'output': {
-            'verbosity': 1,
-            'log_file': '/tmp/test_fox_report.log'
-        },
-        'advanced': {
-            'twilight_type': 'nautical',
-            'buffer_minutes': 15
-        }
+        "output": {"verbosity": 1, "log_file": "/tmp/test_fox_report.log"},
+        "advanced": {"twilight_type": "nautical", "buffer_minutes": 15},
     }
 
 
@@ -38,24 +32,16 @@ def sample_config():
 def static_config():
     """Create a static time configuration for testing."""
     return {
-        'static_times': {
-            'enabled': True,
-            'start_time': '20:00',
-            'end_time': '06:00'
-        },
-        'location': {
-            'timezone': 'America/Denver'
-        },
-        'output': {
-            'verbosity': 1
-        }
+        "static_times": {"enabled": True, "start_time": "20:00", "end_time": "06:00"},
+        "location": {"timezone": "America/Denver"},
+        "output": {"verbosity": 1},
     }
 
 
 @pytest.fixture
 def config_file(sample_config):
     """Create a temporary config file."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         yaml.dump(sample_config, f)
         return f.name
 
@@ -63,7 +49,7 @@ def config_file(sample_config):
 @pytest.fixture
 def static_config_file(static_config):
     """Create a temporary static config file."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
         yaml.dump(static_config, f)
         return f.name
 
@@ -75,7 +61,7 @@ class TestTimeResolver:
         """Test TimeResolver initialization with valid config."""
         resolver = TimeResolver(config_file)
         assert resolver.config is not None
-        assert 'location' in resolver.config
+        assert "location" in resolver.config
         assert resolver.logger is not None
 
     def test_init_with_missing_config(self):
@@ -85,7 +71,7 @@ class TestTimeResolver:
 
     def test_load_config_invalid_yaml(self):
         """Test config loading with invalid YAML."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             f.write("invalid: yaml: content: [")
 
         with pytest.raises(ValueError):
@@ -162,11 +148,11 @@ class TestTimeResolver:
         dusk, dawn = resolver.get_night_range()
 
         # Should be in the configured timezone
-        expected_tz = pytz.timezone('America/Denver')
+        expected_tz = pytz.timezone("America/Denver")
         assert dusk.tzinfo.zone == expected_tz.zone
         assert dawn.tzinfo.zone == expected_tz.zone
 
-    @patch('time_resolver_enhanced.sun')
+    @patch("time_resolver_enhanced.sun")
     def test_astral_calculation_error_fallback(self, mock_sun, config_file):
         """Test fallback to static times when astral calculation fails."""
         # Mock astral to raise an exception
@@ -184,13 +170,13 @@ class TestTimeResolver:
         resolver = TimeResolver(config_file)
 
         # Get times with and without buffer (modify config temporarily)
-        original_buffer = resolver.config['advanced']['buffer_minutes']
+        original_buffer = resolver.config["advanced"]["buffer_minutes"]
 
         # Test with buffer
         dusk_with_buffer, dawn_with_buffer = resolver.get_night_range()
 
         # Modify buffer to 0 and test
-        resolver.config['advanced']['buffer_minutes'] = 0
+        resolver.config["advanced"]["buffer_minutes"] = 0
         dusk_no_buffer, dawn_no_buffer = resolver.get_night_range()
 
         # With buffer, dusk should be earlier and dawn should be later
@@ -208,7 +194,7 @@ class TestTimeResolver:
 
         # Test different seasons
         winter_date = date(2025, 12, 21)  # Winter solstice
-        summer_date = date(2025, 6, 21)   # Summer solstice
+        summer_date = date(2025, 6, 21)  # Summer solstice
 
         winter_dusk, winter_dawn = resolver.get_night_range(winter_date)
         summer_dusk, summer_dawn = resolver.get_night_range(summer_date)
@@ -245,6 +231,6 @@ class TestTimeResolverIntegration:
         assert timedelta(hours=4) <= duration <= timedelta(hours=18)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Run with: python -m pytest test_time_resolver_pytest.py -v
-    pytest.main([__file__, '-v'])
+    pytest.main([__file__, "-v"])

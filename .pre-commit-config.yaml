@@ -31,3 +31,13 @@ repos:
       - id: check-executables-have-shebangs
         # Only check files that should be executable (scripts, not library modules)
         exclude: '^(src/|tests/|backups/)'
+
+  # Ruff linter and formatter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      # Run the linter.
+      - id: ruff
+        args: [--fix]
+      # Run the formatter.
+      - id: ruff-format

@@ -10,15 +10,18 @@ section for email body.
 import json
 import logging
 from datetime import datetime
-from typing import List, Dict, Tuple, Tuple
 from zoneinfo import ZoneInfo
+
 from .database_query import get_fox_events
 from .time_resolver import TimeResolver
 
 # Configure logging using lazy formatting approach
 logger = logging.getLogger(__name__)
 
-def generate_timeline_url(camera: str, start_timestamp: float, end_timestamp: float, padding: int = 5) -> str:
+
+def generate_timeline_url(
+    camera: str, start_timestamp: float, end_timestamp: float, padding: int = 5
+) -> str:
     """
     Generate a Frigate timeline URL with padding.
 
@@ -33,13 +36,19 @@ def generate_timeline_url(camera: str, start_timestamp: float, end_timestamp: fl
     """
     # Add padding to timestamps
     padded_start = int(start_timestamp - padding)
-    padded_end = int(end_timestamp + padding) if end_timestamp > 0 else int(start_timestamp + padding + 10)
+    padded_end = (
+        int(end_timestamp + padding)
+        if end_timestamp > 0
+        else int(start_timestamp + padding + 10)
+    )
 
     # Generate the URL
     return f"https://frig.mso.mt/api/{camera}/start/{padded_start}/end/{padded_end}/clip.mp4"
 
+
 # Mountain Time timezone
 MOUNTAIN_TZ = ZoneInfo("America/Denver")
+
 
 def utc_to_mountain_time(utc_datetime_str: str) -> datetime:
     """
@@ -59,7 +68,8 @@ def utc_to_mountain_time(utc_datetime_str: str) -> datetime:
     # Convert to Mountain Time
     return utc_dt.astimezone(MOUNTAIN_TZ)
 
-def calculate_night_duration(dusk_str: str, dawn_str: str) -> Tuple[float, str]:
+
+def calculate_night_duration(dusk_str: str, dawn_str: str) -> tuple[float, str]:
     """
     Calculate duration between dusk and dawn.
 
@@ -80,14 +90,12 @@ def calculate_night_duration(dusk_str: str, dawn_str: str) -> Tuple[float, str]:
     hours = int(duration_hours)
     minutes = int((duration_hours - hours) * 60)
 
-    if hours > 0:
-        duration_str = f"{hours}h {minutes}m"
-    else:
-        duration_str = f"{minutes}m"
+    duration_str = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
 
     return duration_hours, duration_str
 
-def count_events_per_night(events: List[Dict]) -> Dict[int, int]:
+
+def count_events_per_night(events: list[dict]) -> dict[int, int]:
     """
     Count events per night using the night_index field.
 
@@ -105,9 +113,11 @@ def count_events_per_night(events: List[Dict]) -> Dict[int, int]:
     return night_counts
 
 
-def generate_fox_report(nights: List[int],
-                       dusk_dawn_ranges: List[Tuple[datetime, datetime]],
-                       output_file: str = None) -> Tuple[Dict, str]:
+def generate_fox_report(
+    nights: list[int],
+    dusk_dawn_ranges: list[tuple[datetime, datetime]],
+    output_file: str | None = None,
+) -> tuple[dict, str]:
     """
     Generate a comprehensive fox detection report.
 
@@ -126,26 +136,22 @@ def generate_fox_report(nights: List[int],
 
     # Prepare report structure
     report = {
-        'metadata': {
-            'generated_at': datetime.now(MOUNTAIN_TZ).isoformat(),
-            'nights_analyzed': nights,
-            'total_nights': len(nights),
-            'date_ranges': [
-                {
-                    'night': night,
-                    'dusk': dusk.isoformat(),
-                    'dawn': dawn.isoformat()
-                }
-                for night, (dusk, dawn) in zip(nights, dusk_dawn_ranges)
-            ]
+        "metadata": {
+            "generated_at": datetime.now(MOUNTAIN_TZ).isoformat(),
+            "nights_analyzed": nights,
+            "total_nights": len(nights),
+            "date_ranges": [
+                {"night": night, "dusk": dusk.isoformat(), "dawn": dawn.isoformat()}
+                for night, (dusk, dawn) in zip(nights, dusk_dawn_ranges, strict=False)
+            ],
         },
-        'events_by_camera': {},
-        'totals': {
-            'total_events': len(events),
-            'cameras_with_detections': 0,
-            'average_confidence': 0.0,
-            'total_duration_seconds': 0.0
-        }
+        "events_by_camera": {},
+        "totals": {
+            "total_events": len(events),
+            "cameras_with_detections": 0,
+            "average_confidence": 0.0,
+            "total_duration_seconds": 0.0,
+        },
     }
 
     # Group events by camera
@@ -154,39 +160,39 @@ def generate_fox_report(nights: List[int],
     total_duration = 0.0
 
     for event in events:
-        camera = event['camera']
-        if camera not in report['events_by_camera']:
-            report['events_by_camera'][camera] = []
+        camera = event["camera"]
+        if camera not in report["events_by_camera"]:
+            report["events_by_camera"][camera] = []
             camera_stats[camera] = {
-                'count': 0,
-                'total_confidence': 0.0,
-                'total_duration': 0.0
+                "count": 0,
+                "total_confidence": 0.0,
+                "total_duration": 0.0,
             }
 
-        report['events_by_camera'][camera].append(event)
-        camera_stats[camera]['count'] += 1
-        camera_stats[camera]['total_confidence'] += event['confidence']
-        camera_stats[camera]['total_duration'] += event['duration_seconds']
+        report["events_by_camera"][camera].append(event)
+        camera_stats[camera]["count"] += 1
+        camera_stats[camera]["total_confidence"] += event["confidence"]
+        camera_stats[camera]["total_duration"] += event["duration_seconds"]
 
-        total_confidence += event['confidence']
-        total_duration += event['duration_seconds']
+        total_confidence += event["confidence"]
+        total_duration += event["duration_seconds"]
 
     # Calculate summary statistics
-    report['totals']['cameras_with_detections'] = len(report['events_by_camera'])
-    report['totals']['average_confidence'] = (
+    report["totals"]["cameras_with_detections"] = len(report["events_by_camera"])
+    report["totals"]["average_confidence"] = (
         total_confidence / len(events) if events else 0.0
     )
-    report['totals']['total_duration_seconds'] = total_duration
+    report["totals"]["total_duration_seconds"] = total_duration
 
     # Add per-camera statistics
     for camera, stats in camera_stats.items():
-        report['events_by_camera'][camera] = {
-            'events': report['events_by_camera'][camera],
-            'stats': {
-                'event_count': stats['count'],
-                'average_confidence': stats['total_confidence'] / stats['count'],
-                'total_duration_seconds': stats['total_duration']
-            }
+        report["events_by_camera"][camera] = {
+            "events": report["events_by_camera"][camera],
+            "stats": {
+                "event_count": stats["count"],
+                "average_confidence": stats["total_confidence"] / stats["count"],
+                "total_duration_seconds": stats["total_duration"],
+            },
         }
 
     # Generate Markdown section
@@ -194,21 +200,22 @@ def generate_fox_report(nights: List[int],
 
     # Write JSON to file
     if output_file is None:
-        output_file = datetime.now().strftime('/tmp/fox_report_%Y%m%d.json')
+        output_file = datetime.now().strftime("/tmp/fox_report_%Y%m%d.json")
 
     try:
         # Create a copy of the report without thumbnails for JSON output
         import copy
+
         json_report = copy.deepcopy(report)
 
         # Remove thumbnails from the JSON version to reduce file size
-        for camera_data in json_report.get('events_by_camera', {}).values():
-            if isinstance(camera_data, dict) and 'events' in camera_data:
-                for event in camera_data['events']:
-                    if 'thumbnail' in event:
-                        del event['thumbnail']
+        for camera_data in json_report.get("events_by_camera", {}).values():
+            if isinstance(camera_data, dict) and "events" in camera_data:
+                for event in camera_data["events"]:
+                    if "thumbnail" in event:
+                        del event["thumbnail"]
 
-        with open(output_file, 'w') as json_file:
+        with open(output_file, "w") as json_file:
             json.dump(json_report, json_file, indent=2, default=str)
         logger.info("Report written to %s", output_file)
         print(f"✓ JSON report written to: {output_file}")
@@ -218,7 +225,8 @@ def generate_fox_report(nights: List[int],
 
     return report, markdown
 
-def generate_markdown_report(report: Dict) -> str:
+
+def generate_markdown_report(report: dict) -> str:
     """
     Generate human-readable Markdown report for email body.
 
@@ -231,34 +239,39 @@ def generate_markdown_report(report: Dict) -> str:
     md_lines = []
 
     # Header
-    md_lines.extend([
-
-        f"**Generated:** {datetime.fromisoformat(report['metadata']['generated_at']).strftime('%Y-%m-%d %H:%M:%S %Z')}",
-        f"**Nights Analyzed:** {report['metadata']['total_nights']} nights",
-        f"**Total Events:** {report['totals']['total_events']}",
-        f"**Cameras with Detections:** {report['totals']['cameras_with_detections']}",
-        f"**Average Confidence:** {report['totals']['average_confidence']:.2f}",
-        f"**Total Duration:** {report['totals']['total_duration_seconds']:.1f} seconds",
-    ])
+    md_lines.extend(
+        [
+            f"**Generated:** {datetime.fromisoformat(report['metadata']['generated_at']).strftime('%Y-%m-%d %H:%M:%S %Z')}",
+            f"**Nights Analyzed:** {report['metadata']['total_nights']} nights",
+            f"**Total Events:** {report['totals']['total_events']}",
+            f"**Cameras with Detections:** {report['totals']['cameras_with_detections']}",
+            f"**Average Confidence:** {report['totals']['average_confidence']:.2f}",
+            f"**Total Duration:** {report['totals']['total_duration_seconds']:.1f} seconds",
+        ]
+    )
 
     # Time ranges
-    md_lines.extend([
-        "## 📅 Analysis Time Ranges",
-    ])
+    md_lines.extend(
+        [
+            "## 📅 Analysis Time Ranges",
+        ]
+    )
 
     # Extract events from report and count per night
     all_events = []
-    for camera_data in report.get('events_by_camera', {}).values():
-        all_events.extend(camera_data.get('events', []))
+    for camera_data in report.get("events_by_camera", {}).values():
+        all_events.extend(camera_data.get("events", []))
     night_event_counts = count_events_per_night(all_events)
 
-    for date_range in report['metadata']['date_ranges']:
-        night = date_range['night']
-        dusk_time = utc_to_mountain_time(date_range['dusk']).strftime('%m/%d %H:%M')
-        dawn_time = utc_to_mountain_time(date_range['dawn']).strftime('%m/%d %H:%M')
+    for date_range in report["metadata"]["date_ranges"]:
+        night = date_range["night"]
+        dusk_time = utc_to_mountain_time(date_range["dusk"]).strftime("%m/%d %H:%M")
+        dawn_time = utc_to_mountain_time(date_range["dawn"]).strftime("%m/%d %H:%M")
 
         # Calculate duration
-        duration_hours, duration_str = calculate_night_duration(date_range['dusk'], date_range['dawn'])
+        duration_hours, duration_str = calculate_night_duration(
+            date_range["dusk"], date_range["dawn"]
+        )
 
         # Get event count for this night
         event_count = night_event_counts.get(night, 0)
@@ -271,38 +284,48 @@ def generate_markdown_report(report: Dict) -> str:
     md_lines.append("")
 
     # Events by camera
-    if report['events_by_camera']:
-        md_lines.extend([
-            "## 📹 Events by Camera",
-        ])
+    if report["events_by_camera"]:
+        md_lines.extend(
+            [
+                "## 📹 Events by Camera",
+            ]
+        )
 
-        for camera, camera_data in report['events_by_camera'].items():
-            events = camera_data['events']
-            stats = camera_data['stats']
+        for camera, camera_data in report["events_by_camera"].items():
+            events = camera_data["events"]
+            stats = camera_data["stats"]
 
-            md_lines.extend([
-                f"### {camera}",
-                f"- **Events:** {stats['event_count']}",
-                f"- **Average Confidence:** {stats['average_confidence']:.2f}",
-                f"- **Total Duration:** {stats['total_duration_seconds']:.1f} seconds",
-                ""
-            ])
+            md_lines.extend(
+                [
+                    f"### {camera}",
+                    f"- **Events:** {stats['event_count']}",
+                    f"- **Average Confidence:** {stats['average_confidence']:.2f}",
+                    f"- **Total Duration:** {stats['total_duration_seconds']:.1f} seconds",
+                    "",
+                ]
+            )
 
             # List individual events
             md_lines.append("**Recent Events:**")
             for event in events[:5]:  # Show up to 5 most recent
-                start_time = utc_to_mountain_time(event['start_time']).strftime('%m/%d %H:%M')
-                confidence_pct = event['confidence'] * 100
-                duration_str = f"{event['duration_seconds']:.1f}s" if event['duration_seconds'] > 0 else "N/A"
+                start_time = utc_to_mountain_time(event["start_time"]).strftime(
+                    "%m/%d %H:%M"
+                )
+                confidence_pct = event["confidence"] * 100
+                duration_str = (
+                    f"{event['duration_seconds']:.1f}s"
+                    if event["duration_seconds"] > 0
+                    else "N/A"
+                )
 
                 # Generate timeline URL if we have timestamps
                 timeline_link = ""
-                if 'start_timestamp' in event and 'end_timestamp' in event:
+                if "start_timestamp" in event and "end_timestamp" in event:
                     timeline_url = generate_timeline_url(
-                        event['camera'],
-                        event['start_timestamp'],
-                        event['end_timestamp'],
-                        padding=5
+                        event["camera"],
+                        event["start_timestamp"],
+                        event["end_timestamp"],
+                        padding=5,
                     )
                     timeline_link = f" | [Timeline]({timeline_url})"
 
@@ -315,18 +338,19 @@ def generate_markdown_report(report: Dict) -> str:
                 md_lines.append(f"- ... and {len(events) - 5} more events")
 
     else:
-        md_lines.extend([
-            "## 📹 Events by Camera",
-            "",
-            "No fox detections found in the analyzed time period.",
-            ""
-        ])
+        md_lines.extend(
+            [
+                "## 📹 Events by Camera",
+                "",
+                "No fox detections found in the analyzed time period.",
+                "",
+            ]
+        )
 
     return "\n".join(md_lines)
 
 
-
-def generate_html_report_with_thumbnails(report: Dict) -> str:
+def generate_html_report_with_thumbnails(report: dict) -> str:
     """
     Generate HTML report with inline thumbnail images.
 
@@ -445,37 +469,43 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
     <div class="container">
     """)
     # Events by camera (moved to top)
-    if report['events_by_camera']:
+    if report["events_by_camera"]:
         html_parts.append("<h2>📹 Events by Camera</h2>")
 
-        for camera, camera_data in report['events_by_camera'].items():
-            events = camera_data['events']
-            stats = camera_data['stats']
+        for camera, camera_data in report["events_by_camera"].items():
+            events = camera_data["events"]
+            stats = camera_data["stats"]
 
             html_parts.append(f"""
             <div class="camera-section">
                 <h3>{camera}</h3>
                 <div class="event-info">
-                    <strong>Events:</strong> {stats['event_count']} |
-                    <strong>Average Confidence:</strong> {stats['average_confidence']:.2f} |
-                    <strong>Total Duration:</strong> {stats['total_duration_seconds']:.1f} seconds
+                    <strong>Events:</strong> {stats["event_count"]} |
+                    <strong>Average Confidence:</strong> {stats["average_confidence"]:.2f} |
+                    <strong>Total Duration:</strong> {stats["total_duration_seconds"]:.1f} seconds
                 </div>
             """)
 
             # Show individual events with thumbnails
             for event in events[:10]:  # Show up to 10 events
-                start_time = utc_to_mountain_time(event['start_time']).strftime('%m/%d %H:%M')
-                confidence_pct = event['confidence'] * 100
-                duration_str = f"{event['duration_seconds']:.1f}s" if event['duration_seconds'] > 0 else "N/A"
+                start_time = utc_to_mountain_time(event["start_time"]).strftime(
+                    "%m/%d %H:%M"
+                )
+                confidence_pct = event["confidence"] * 100
+                duration_str = (
+                    f"{event['duration_seconds']:.1f}s"
+                    if event["duration_seconds"] > 0
+                    else "N/A"
+                )
 
                 # Generate timeline URL if we have timestamps
                 timeline_link = ""
-                if 'start_timestamp' in event and 'end_timestamp' in event:
+                if "start_timestamp" in event and "end_timestamp" in event:
                     timeline_url = generate_timeline_url(
-                        event['camera'],
-                        event['start_timestamp'],
-                        event['end_timestamp'],
-                        padding=5
+                        event["camera"],
+                        event["start_timestamp"],
+                        event["end_timestamp"],
+                        padding=5,
                     )
                     timeline_link = f'<a href="{timeline_url}">Timeline</a>'
 
@@ -483,8 +513,10 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
 
                 # Create event HTML with clickable thumbnail
                 thumbnail_html = ""
-                event_url = f'https://frig.mso.mt/api/events/{event["event_id"]}/clip.mp4'
-                if event.get('thumbnail'):
+                event_url = (
+                    f"https://frig.mso.mt/api/events/{event['event_id']}/clip.mp4"
+                )
+                if event.get("thumbnail"):
                     # Make thumbnail clickable - links to event video
                     thumbnail_html = f'<a href="{event_url}" title="Click to view event video"><img src="data:image/jpeg;base64,{event["thumbnail"]}" class="thumbnail" alt="Fox detection thumbnail"></a>'
 
@@ -504,7 +536,9 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
                 """)
 
             if len(events) > 10:
-                html_parts.append(f'<p style="text-align: center; color: #999;">... and {len(events) - 10} more events</p>')
+                html_parts.append(
+                    f'<p style="text-align: center; color: #999;">... and {len(events) - 10} more events</p>'
+                )
 
             html_parts.append("</div>")
     else:
@@ -518,12 +552,12 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
     # Summary (moved below events)
     html_parts.append(f"""
     <div class="summary">
-        <strong>Generated:</strong> {datetime.fromisoformat(report['metadata']['generated_at']).strftime('%Y-%m-%d %H:%M:%S %Z')}<br>
-        <strong>Nights Analyzed:</strong> {report['metadata']['total_nights']}<br>
-        <strong>Total Events:</strong> {report['totals']['total_events']}<br>
-        <strong>Cameras with Detections:</strong> {report['totals']['cameras_with_detections']}<br>
-        <strong>Average Confidence:</strong> {report['totals']['average_confidence']:.2f}<br>
-        <strong>Total Duration:</strong> {report['totals']['total_duration_seconds']:.1f} seconds
+        <strong>Generated:</strong> {datetime.fromisoformat(report["metadata"]["generated_at"]).strftime("%Y-%m-%d %H:%M:%S %Z")}<br>
+        <strong>Nights Analyzed:</strong> {report["metadata"]["total_nights"]}<br>
+        <strong>Total Events:</strong> {report["totals"]["total_events"]}<br>
+        <strong>Cameras with Detections:</strong> {report["totals"]["cameras_with_detections"]}<br>
+        <strong>Average Confidence:</strong> {report["totals"]["average_confidence"]:.2f}<br>
+        <strong>Total Duration:</strong> {report["totals"]["total_duration_seconds"]:.1f} seconds
     </div>
     """)
 
@@ -531,17 +565,19 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
     html_parts.append("<h2>📅 Analysis Time Ranges</h2><ul>")
     # Extract events from report and count per night for HTML
     all_events = []
-    for camera_data in report.get('events_by_camera', {}).values():
-        all_events.extend(camera_data.get('events', []))
+    for camera_data in report.get("events_by_camera", {}).values():
+        all_events.extend(camera_data.get("events", []))
     night_event_counts = count_events_per_night(all_events)
 
-    for date_range in report['metadata']['date_ranges']:
-        night = date_range['night']
-        dusk_time = utc_to_mountain_time(date_range['dusk']).strftime('%m/%d %H:%M')
-        dawn_time = utc_to_mountain_time(date_range['dawn']).strftime('%m/%d %H:%M')
+    for date_range in report["metadata"]["date_ranges"]:
+        night = date_range["night"]
+        dusk_time = utc_to_mountain_time(date_range["dusk"]).strftime("%m/%d %H:%M")
+        dawn_time = utc_to_mountain_time(date_range["dawn"]).strftime("%m/%d %H:%M")
 
         # Calculate duration
-        duration_hours, duration_str = calculate_night_duration(date_range['dusk'], date_range['dawn'])
+        duration_hours, duration_str = calculate_night_duration(
+            date_range["dusk"], date_range["dawn"]
+        )
 
         # Get event count for this night
         event_count = night_event_counts.get(night, 0)
@@ -552,7 +588,6 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
             f"({duration_str}, {event_count} events)</li>"
         )
     html_parts.append("</ul>")
-
 
     # Footer
     html_parts.append("""
@@ -565,9 +600,12 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
     </html>
     """)
 
-    return ''.join(html_parts)
+    return "".join(html_parts)
 
-def get_last_n_nights_data(num_nights: int = 3) -> Tuple[List[int], List[Tuple[datetime, datetime]]]:
+
+def get_last_n_nights_data(
+    num_nights: int = 3,
+) -> tuple[list[int], list[tuple[datetime, datetime]]]:
     """
     Get night indices and dusk/dawn ranges for the last N nights.
 
@@ -582,7 +620,9 @@ def get_last_n_nights_data(num_nights: int = 3) -> Tuple[List[int], List[Tuple[d
     try:
         # Instantiate TimeResolver and get time ranges
         time_resolver = TimeResolver()
-        dusk_dawn_ranges = time_resolver.get_multiple_night_ranges(nights_count=num_nights)
+        dusk_dawn_ranges = time_resolver.get_multiple_night_ranges(
+            nights_count=num_nights
+        )
         nights = list(range(1, num_nights + 1))
 
         logger.info("Successfully calculated time ranges for nights: %s", nights)
@@ -592,11 +632,12 @@ def get_last_n_nights_data(num_nights: int = 3) -> Tuple[List[int], List[Tuple[d
         logger.error("Failed to calculate time ranges: %s", str(e))
         return [], []
 
+
 if __name__ == "__main__":
     # Configure logging
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
     print("🦊 Fox Detection Report Generator")
@@ -611,8 +652,10 @@ if __name__ == "__main__":
             exit(1)
 
         print(f"Analyzing {len(nights)} nights:")
-        for night, (dusk, dawn) in zip(nights, dusk_dawn_ranges):
-            print(f"  Night {night}: {dusk.strftime('%Y-%m-%d %H:%M')} - {dawn.strftime('%Y-%m-%d %H:%M')}")
+        for night, (dusk, dawn) in zip(nights, dusk_dawn_ranges, strict=False):
+            print(
+                f"  Night {night}: {dusk.strftime('%Y-%m-%d %H:%M')} - {dawn.strftime('%Y-%m-%d %H:%M')}"
+            )
 
         print("\nGenerating report...")
 
