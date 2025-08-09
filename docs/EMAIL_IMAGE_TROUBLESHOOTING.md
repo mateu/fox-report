@@ -55,15 +55,15 @@ To verify images are properly embedded:
 
 ## If Images Still Don't Display
 
-1. **Check Email Client Settings**: 
+1. **Check Email Client Settings**:
    - Enable "Display Images" or "Download Images"
    - Add sender to trusted/safe senders list
 
-2. **Security Software**: 
+2. **Security Software**:
    - Corporate firewalls may strip images
    - Anti-virus may block embedded content
 
-3. **Email Size**: 
+3. **Email Size**:
    - Some servers reject emails over 10MB
    - Our thumbnails are ~8KB each, so this shouldn't be an issue
 

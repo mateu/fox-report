@@ -1,0 +1,33 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      # Whitespace management
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+      # File format checks
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-xml
+
+      # Git-related checks
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-merge-conflict
+
+      # Python-specific
+      - id: check-ast
+      - id: debug-statements
+      - id: name-tests-test
+        args: [--pytest-test-first]
+
+      # General file checks
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+        # Only check files that should be executable (scripts, not library modules)
+        exclude: '^(src/|tests/|backups/)'

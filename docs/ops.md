@@ -53,7 +53,7 @@ If the cron job stops working:
 1. **Check cron service**: `systemctl status cron`
 2. **Verify crontab**: `crontab -l`
 3. **Check logs**: `tail -f /tmp/fox_report_cron.log`
-4. **Test manually**: 
+4. **Test manually**:
    ```bash
    cd /home/hunter/fox-report && source venv/bin/activate && python send_fox_report_gmail.py --config config/gmail.yaml --nights 1
    ```

@@ -78,7 +78,7 @@ The configuration is stored in YAML format. Key sections:
 ```yaml
 location:
   latitude: 46.9080      # Decimal degrees
-  longitude: -114.0722   # Decimal degrees  
+  longitude: -114.0722   # Decimal degrees
   timezone: "America/Denver"
   elevation: 980         # Meters above sea level
 ```
@@ -203,7 +203,7 @@ LOG_LEVEL=INFO
 ### Gmail Setup Instructions
 
 1. **Enable 2-Factor Authentication** on your Gmail account
-2. **Generate App Password**: 
+2. **Generate App Password**:
    - Go to Google Account settings → Security → 2-Step Verification → App passwords
    - Generate a new app password for "Mail"
    - Use this password in `GMAIL_APP_PASSWORD` (not your regular Gmail password)
@@ -216,7 +216,7 @@ The email sender automatically includes these essential headers for deliverabili
 - **Message-ID**: Unique identifier using UUID4 format (`<uuid@domain>`)
 - **Date**: RFC-2822 formatted timestamp with timezone
 - **Reply-To**: Configurable support email address
-- **X-Mailer**: Application identifier (`FoxReport/1.0 (Python smtplib)`) 
+- **X-Mailer**: Application identifier (`FoxReport/1.0 (Python smtplib)`)
 - **Content-Type**: Proper multipart/alternative with UTF-8 charset
 - **Plain-text alternative**: HTML emails include auto-generated plain-text version
 
@@ -241,4 +241,3 @@ The email system supports environment variable controlled logging:
 - `LOG_LEVEL=INFO`: Standard operational logging (default)
 - `LOG_LEVEL=WARNING`: Only warnings and errors
 - `LOG_LEVEL=ERROR`: Only error messages
-

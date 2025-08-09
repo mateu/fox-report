@@ -5,7 +5,7 @@
 nights:
   # Number of nights to schedule (integer)
   count: 7
-  
+
   # Default start and end times (ISO format or 'sunset'/'sunrise')
   # Can be overridden by geographic calculations
   start: "sunset"
@@ -15,7 +15,7 @@ nights:
 email:
   # Default recipient for observation reports
   recipient: "mhunter@maxmind.com"
-  
+
   # Email format preference
   format: "html"  # Options: html, text, json
 
@@ -23,11 +23,11 @@ email:
 location:
   # Coordinates in decimal degrees
   latitude: 46.9080
-  longitude: -114.0722 
-  
+  longitude: -114.0722
+
   # Optional: timezone (if not specified, will be calculated from coordinates)
   timezone: "America/Denver"
-  
+
   # Elevation in meters (affects twilight calculations)
   elevation: 980
 
@@ -42,14 +42,14 @@ static_times:
 output:
   # Verbosity level: 0=quiet, 1=normal, 2=verbose, 3=debug
   verbosity: 1
-  
+
   # Log file location (uses rotating file handler)
   # File will rotate at 10MB with 5 backup copies
   log_file: /tmp/fox_report.log
-  
+
   # Enable syslog logging (writes to system log)
   use_syslog: true
-  
+
   # Output format for reports
   format: "table"  # Options: table, json, csv, yaml
 
@@ -57,6 +57,6 @@ output:
 advanced:
   # Astronomical twilight types for calculations
   twilight_type: "nautical"  # Options: civil, nautical, astronomical
-  
+
   # Buffer time in minutes before/after calculated times
   buffer_minutes: 15

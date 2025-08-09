@@ -17,4 +17,3 @@
 1. Enable 2-factor authentication on your Google account
 2. Generate an app password for "Mail"
 3. Use the 16-character password in your `.env` file
-

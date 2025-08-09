@@ -239,7 +239,7 @@ LOG_LEVEL=INFO
 ### Gmail Setup Instructions
 
 1. **Enable 2-Factor Authentication** on your Gmail account
-2. **Generate App Password**: 
+2. **Generate App Password**:
    - Go to Google Account settings → Security → 2-Step Verification → App passwords
    - Generate a new app password for "Mail"
    - Use this password in `GMAIL_APP_PASSWORD` (not your regular Gmail password)
@@ -252,7 +252,7 @@ The email sender automatically includes these essential headers for deliverabili
 - **Message-ID**: Unique identifier using UUID4 format (`<uuid@domain>`)
 - **Date**: RFC-2822 formatted timestamp with timezone
 - **Reply-To**: Configurable support email address
-- **X-Mailer**: Application identifier (`FoxReport/1.0 (Python smtplib)`) 
+- **X-Mailer**: Application identifier (`FoxReport/1.0 (Python smtplib)`)
 - **Content-Type**: Proper multipart/alternative with UTF-8 charset
 - **Plain-text alternative**: HTML emails include auto-generated plain-text version
 
@@ -292,4 +292,3 @@ If emails are being sent via system mail instead of Gmail SMTP, ensure:
 2. **All dependencies are installed**: `pip install -r requirements.txt`
 3. **Environment variables are configured**: Check `.env` file
 4. **Gmail app password is correct**: 16-character space-separated format
-

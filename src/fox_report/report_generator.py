@@ -636,4 +636,3 @@ if __name__ == "__main__":
     except Exception as e:
         logger.exception("Failed to generate report: %s", str(e))
         print(f"✗ Error generating report: {e}")
-

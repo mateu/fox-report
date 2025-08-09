@@ -73,7 +73,7 @@ def main():
     """Run all tests"""
     print("Running main orchestration tests...")
     print("=" * 50)
-    
+
     try:
         test_help()
         test_mutually_exclusive_args()
@@ -81,11 +81,11 @@ def main():
         test_config_not_found()
         test_successful_run()
         test_verbose_mode()
-        
+
         print("=" * 50)
         print("✅ All tests passed!")
         return 0
-        
+
     except AssertionError as e:
         print(f"❌ Test failed: {e}")
         return 1

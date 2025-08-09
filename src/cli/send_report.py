@@ -32,7 +32,7 @@ def setup_logging(verbose: bool = False, quiet: bool = False, config: dict = Non
     """
     Configure logging with rotating file handler and optional syslog.
     Uses lazy formatting approach as per user rules.
-    
+
     Args:
         verbose: Enable verbose logging (DEBUG level)
         quiet: Enable quiet mode (WARNING level only)
@@ -45,31 +45,31 @@ def setup_logging(verbose: bool = False, quiet: bool = False, config: dict = Non
         log_level = logging.DEBUG
     else:
         log_level = logging.INFO
-    
+
     # Get log file path from config or use default
     log_file = None
     use_syslog = False
-    
+
     if config and 'output' in config:
         log_file = config['output'].get('log_file', '/tmp/fox_report.log')
         use_syslog = config['output'].get('use_syslog', False)
     else:
         log_file = '/tmp/fox_report.log'
-    
+
     # Configure root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
-    
+
     # Clear any existing handlers
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
-    
+
     # Create formatter using lazy formatting style
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S'
     )
-    
+
     # Setup rotating file handler
     if log_file:
         try:
@@ -77,7 +77,7 @@ def setup_logging(verbose: bool = False, quiet: bool = False, config: dict = Non
             log_dir = os.path.dirname(log_file)
             if log_dir and not os.path.exists(log_dir):
                 os.makedirs(log_dir, exist_ok=True)
-            
+
             # Rotating file handler (10MB max, 5 backups)
             file_handler = logging.handlers.RotatingFileHandler(
                 log_file,
@@ -88,13 +88,13 @@ def setup_logging(verbose: bool = False, quiet: bool = False, config: dict = Non
             file_handler.setLevel(log_level)
             file_handler.setFormatter(formatter)
             root_logger.addHandler(file_handler)
-            
+
             logger.info("Logging configured with rotating file handler: %s", log_file)
-            
+
         except Exception as e:
             # Fallback to console if file logging fails
             print("Warning: Could not setup file logging (%s), using console only" % str(e))
-    
+
     # Setup syslog handler if requested
     if use_syslog:
         try:
@@ -105,12 +105,12 @@ def setup_logging(verbose: bool = False, quiet: bool = False, config: dict = Non
             syslog_handler.setFormatter(syslog_formatter)
             syslog_handler.setLevel(log_level)
             root_logger.addHandler(syslog_handler)
-            
+
             logger.info("Syslog logging enabled")
-            
+
         except Exception as e:
             logger.warning("Could not setup syslog handler: %s", str(e))
-    
+
     # Always add console handler for immediate feedback (unless quiet mode)
     if not quiet:
         console_handler = logging.StreamHandler()
@@ -123,10 +123,10 @@ def setup_logging(verbose: bool = False, quiet: bool = False, config: dict = Non
 def load_config(config_path: str = 'config/template.yaml') -> dict:
     """
     Load configuration from YAML file.
-    
+
     Args:
         config_path: Path to configuration file
-        
+
     Returns:
         Configuration dictionary
     """
@@ -143,41 +143,41 @@ def load_config(config_path: str = 'config/template.yaml') -> dict:
 def save_json_report(report: dict, output_path: str = None) -> str:
     """
     Save report to JSON file (without thumbnails to reduce size).
-    
+
     Args:
         report: Report dictionary to save
         output_path: Optional custom output path
-        
+
     Returns:
         Path to saved JSON file
     """
     if not output_path:
         date_str = datetime.now().strftime('%Y%m%d')
         output_path = "/tmp/fox_report_%s.json" % date_str
-    
+
     try:
         # Create a copy of the report without thumbnails for JSON output
         json_report = copy.deepcopy(report)
-        
+
         # Remove thumbnails from the JSON version to reduce file size
         for camera_data in json_report.get('events_by_camera', {}).values():
             if isinstance(camera_data, dict) and 'events' in camera_data:
                 for event in camera_data['events']:
                     if 'thumbnail' in event:
                         del event['thumbnail']
-        
+
         with open(output_path, 'w') as f:
             json.dump(json_report, f, indent=2, default=str)
-        
+
         logger.info("JSON report saved to %s", output_path)
         return output_path
-        
+
     except Exception as e:
         logger.error("Failed to save JSON report to %s: %s", output_path, str(e))
         raise
 
 
-def main(config_path: str = 'config/template.yaml', 
+def main(config_path: str = 'config/template.yaml',
          nights: int = 3,
          json_output: str = None,
          send_email: bool = True,
@@ -185,7 +185,7 @@ def main(config_path: str = 'config/template.yaml',
          quiet: bool = False) -> bool:
     """
     Main function to generate and send fox detection report.
-    
+
     Args:
         config_path: Path to configuration file
         nights: Number of nights to analyze
@@ -193,47 +193,47 @@ def main(config_path: str = 'config/template.yaml',
         send_email: Whether to send email (default: True)
         verbose: Enable verbose logging
         quiet: Enable quiet mode
-        
+
     Returns:
         True if successful, False otherwise
     """
     config = None
-    
+
     try:
         # Load configuration first (before setting up logging)
         config = load_config(config_path)
-        
+
         # Setup logging with configuration
         setup_logging(verbose=verbose, quiet=quiet, config=config)
-        
+
         logger.info("Starting fox detection report generation")
         logger.debug("Configuration: nights=%d, send_email=%s", nights, send_email)
-        
+
         # Get nights data
         logger.info("Retrieving data for last %d nights", nights)
         nights_list, dusk_dawn_ranges = get_last_n_nights_data(nights)
-        
+
         if not nights_list:
             logger.error("Could not retrieve time ranges for nights analysis")
             return False
-        
+
         logger.info("Analyzing %d nights of data", len(nights_list))
         for i, (night, (dusk, dawn)) in enumerate(zip(nights_list, dusk_dawn_ranges)):
-            logger.debug("Night %d: %s - %s", night, 
-                        dusk.strftime('%Y-%m-%d %H:%M'), 
+            logger.debug("Night %d: %s - %s", night,
+                        dusk.strftime('%Y-%m-%d %H:%M'),
                         dawn.strftime('%Y-%m-%d %H:%M'))
-        
+
         # Generate report
         logger.info("Generating fox detection report")
         report, markdown_content = generate_fox_report(nights_list, dusk_dawn_ranges)
-        
+
         # Log summary statistics
         fox_events = report.get('totals', {}).get('total_events', 0)
         logger.info("Found %d fox events in report", fox_events)
-        
+
         # Save JSON report
         json_path = save_json_report(report, json_output)
-        
+
         # Send email if requested
         if send_email:
             logger.info("Sending email report")
@@ -244,7 +244,7 @@ def main(config_path: str = 'config/template.yaml',
                 )
             except Exception as e:
                 success, stdout, stderr = False, "", str(e)
-            
+
             if success:
                 logger.info("Email report sent successfully")
                 if not quiet:
@@ -263,7 +263,7 @@ def main(config_path: str = 'config/template.yaml',
             if not quiet:
                 print("✓ Report generated successfully. JSON saved to: %s" % json_path)
             return True
-            
+
     except Exception as e:
         logger.exception("Failed to generate/send report: %s", str(e))
         if not quiet:
@@ -273,7 +273,7 @@ def main(config_path: str = 'config/template.yaml',
 
 if __name__ == "__main__":
     import argparse
-    
+
     parser = argparse.ArgumentParser(
         description="Generate and send Frigate Fox detection reports"
     )
@@ -307,19 +307,19 @@ if __name__ == "__main__":
         action='store_true',
         help='Enable quiet mode (WARNING level only, minimal console output)'
     )
-    
+
     args = parser.parse_args()
     print("DEBUG: nights=" + str(args.nights) + ", config=" + args.config)
-    
+
     # Validate mutually exclusive flags
     if args.verbose and args.quiet:
         print("Error: --verbose and --quiet are mutually exclusive")
         sys.exit(1)
-    
+
     if not args.quiet:
         print("🦊 Frigate Fox Report Sender")
         print("=" * 40)
-    
+
     # Run main function
     success = main(
         config_path=args.config,
@@ -329,5 +329,5 @@ if __name__ == "__main__":
         verbose=args.verbose,
         quiet=args.quiet
     )
-    
+
     sys.exit(0 if success else 1)
