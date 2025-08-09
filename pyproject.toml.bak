@@ -1,14 +1,9 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "fox-report"
 version = "0.1.0"
 description = "Fox Detection Report System for Frigate NVR"
 readme = "README.md"
 requires-python = ">=3.11"
-authors = [{ name = "Hunter", email = "hunter@406mt.org" }]
 dependencies = [
     "astral==3.2",
     "jinja2==3.1.6",
@@ -16,12 +11,7 @@ dependencies = [
     "python-dotenv==1.0.0",
     "pytz==2025.2",
     "pyyaml==6.0",
-    "click>=8.1",
-    "typer[all]>=0.12",
 ]
-
-[project.scripts]
-fox-report = "fox_report.cli:app"
 
 [dependency-groups]
 dev = [

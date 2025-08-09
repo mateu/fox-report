@@ -4,3 +4,5 @@ MarkupSafe==3.0.2
 pytz==2025.2
 PyYAML==6.0
 python-dotenv==1.0.0
+
+typer[all]>=0.12

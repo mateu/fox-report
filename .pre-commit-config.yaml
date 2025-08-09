@@ -32,12 +32,24 @@ repos:
         # Only check files that should be executable (scripts, not library modules)
         exclude: '^(src/|tests/|backups/)'
 
-  # Ruff linter and formatter
+  # Modernize syntax where safe per Python 3.11+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.16.0
+    hooks:
+      - id: pyupgrade
+        args: [--py311-plus]
+
+  # Ruff linter and formatter (lint first with fixes, then format)
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.0
     hooks:
-      # Run the linter.
       - id: ruff
         args: [--fix]
-      # Run the formatter.
       - id: ruff-format
+
+  # Sort imports consistently
+  - repo: https://github.com/pycqa/isort
+    rev: 6.0.1
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]

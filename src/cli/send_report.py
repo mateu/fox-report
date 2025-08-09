@@ -18,6 +18,7 @@ from dotenv import load_dotenv
 
 from fox_report.email.sender import EmailSender
 from fox_report.report_generator import generate_fox_report, get_last_n_nights_data
+from fox_report.config import settings
 
 # Load environment variables from .env file
 load_dotenv()
@@ -168,7 +169,7 @@ def save_json_report(report: dict, output_path: str | None = None) -> str:
     """
     # Generate default filename if not provided
     if not output_path:
-        date_str = datetime.now().strftime("%Y%m%d")
+        date_str = datetime.now(tz=settings.tz).strftime("%Y%m%d")
         output_path = f"/tmp/fox_report_{date_str}.json"
 
     try:
