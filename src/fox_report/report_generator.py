@@ -380,30 +380,7 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
     <body>
     <div class="container">
     """)
-    
-    # Title and summary
-    html_parts.append(f"""
-    <div class="summary">
-        <strong>Generated:</strong> {datetime.fromisoformat(report['metadata']['generated_at']).strftime('%Y-%m-%d %H:%M:%S %Z')}<br>
-        <strong>Nights Analyzed:</strong> {report['metadata']['total_nights']}<br>
-        <strong>Total Events:</strong> {report['totals']['total_events']}<br>
-        <strong>Cameras with Detections:</strong> {report['totals']['cameras_with_detections']}<br>
-        <strong>Average Confidence:</strong> {report['totals']['average_confidence']:.2f}<br>
-        <strong>Total Duration:</strong> {report['totals']['total_duration_seconds']:.1f} seconds
-    </div>
-    """)
-    
-    # Time ranges
-    html_parts.append("<h2>📅 Analysis Time Ranges</h2><ul>")
-    for date_range in report['metadata']['date_ranges']:
-        html_parts.append(
-            f"<li><strong>Night {date_range['night']}:</strong> "
-            f"{utc_to_mountain_time(date_range['dusk']).strftime('%m/%d %H:%M')} - "
-            f"{utc_to_mountain_time(date_range['dawn']).strftime('%m/%d %H:%M')}</li>"
-        )
-    html_parts.append("</ul>")
-    
-    # Events by camera
+    # Events by camera (moved to top)
     if report['events_by_camera']:
         html_parts.append("<h2>📹 Events by Camera</h2>")
         
@@ -473,6 +450,29 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
             <p>No fox detections were found in the analyzed time period.</p>
         </div>
         """)
+
+    # Summary (moved below events)
+    html_parts.append(f"""
+    <div class="summary">
+        <strong>Generated:</strong> {datetime.fromisoformat(report['metadata']['generated_at']).strftime('%Y-%m-%d %H:%M:%S %Z')}<br>
+        <strong>Nights Analyzed:</strong> {report['metadata']['total_nights']}<br>
+        <strong>Total Events:</strong> {report['totals']['total_events']}<br>
+        <strong>Cameras with Detections:</strong> {report['totals']['cameras_with_detections']}<br>
+        <strong>Average Confidence:</strong> {report['totals']['average_confidence']:.2f}<br>
+        <strong>Total Duration:</strong> {report['totals']['total_duration_seconds']:.1f} seconds
+    </div>
+    """)
+
+    # Time ranges (now below summary)
+    html_parts.append("<h2>📅 Analysis Time Ranges</h2><ul>")
+    for date_range in report['metadata']['date_ranges']:
+        html_parts.append(
+            f"<li><strong>Night {date_range['night']}:</strong> "
+            f"{utc_to_mountain_time(date_range['dusk']).strftime('%m/%d %H:%M')} - "
+            f"{utc_to_mountain_time(date_range['dawn']).strftime('%m/%d %H:%M')}</li>"
+        )
+    html_parts.append("</ul>")
+
     
     # Footer
     html_parts.append("""
