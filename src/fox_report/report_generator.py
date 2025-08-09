@@ -298,25 +298,25 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
                 box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             }
             h1 { color: #333; border-bottom: 2px solid #ff6b35; padding-bottom: 10px; }
-            h2 { color: #555; margin-top: 30px; }
-            h3 { color: #666; }
+            h2 { color: #555; margin-top: 24px; }
+            h3 { color: #666;  margin: 4px 0 2px;}
             .summary { 
                 background-color: #f8f9fa; 
                 padding: 15px; 
                 border-radius: 5px; 
-                margin: 20px 0;
+                margin: 12px 0;
             }
             .camera-section {
-                margin: 20px 0;
-                padding: 15px;
+                margin: 6px 0;
+                padding: 10px;
                 background-color: #fafafa;
                 border-radius: 5px;
             }
             .event {
                 display: flex;
                 align-items: center;
-                margin: 15px 0;
-                padding: 10px;
+                margin: 6px 0;
+                padding: 8px;
                 background-color: white;
                 border: 1px solid #e0e0e0;
                 border-radius: 5px;
@@ -346,7 +346,7 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
             .event-info {
                 color: #666;
                 margin: 3px 0;
-            }
+             font-size: 13px;}
             .event-links {
                 margin-top: 8px;
             }
@@ -375,7 +375,9 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
                 padding: 40px;
                 color: #999;
             }
-        </style>
+                    .camera-section:last-child { margin-bottom: 6px; }
+            .event:last-child { margin-bottom: 4px; }
+</style>
     </head>
     <body>
     <div class="container">
