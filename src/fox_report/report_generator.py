@@ -18,7 +18,6 @@ from .time_resolver import TimeResolver
 # Configure logging using lazy formatting approach
 logger = logging.getLogger(__name__)
 
-
 def generate_timeline_url(camera: str, start_timestamp: float, end_timestamp: float, padding: int = 5) -> str:
     """
     Generate a Frigate timeline URL with padding.
@@ -38,7 +37,6 @@ def generate_timeline_url(camera: str, start_timestamp: float, end_timestamp: fl
 
     # Generate the URL
     return f"https://frig.mso.mt/api/{camera}/start/{padded_start}/end/{padded_end}/clip.mp4"
-
 
 # Mountain Time timezone
 MOUNTAIN_TZ = ZoneInfo("America/Denver")
@@ -60,7 +58,6 @@ def utc_to_mountain_time(utc_datetime_str: str) -> datetime:
 
     # Convert to Mountain Time
     return utc_dt.astimezone(MOUNTAIN_TZ)
-
 
 def generate_fox_report(nights: List[int],
                        dusk_dawn_ranges: List[Tuple[datetime, datetime]],
@@ -175,7 +172,6 @@ def generate_fox_report(nights: List[int],
 
     return report, markdown
 
-
 def generate_markdown_report(report: Dict) -> str:
     """
     Generate human-readable Markdown report for email body.
@@ -265,7 +261,6 @@ def generate_markdown_report(report: Dict) -> str:
         ])
 
     return "\n".join(md_lines)
-
 
 
 
@@ -388,7 +383,6 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
     
     # Title and summary
     html_parts.append(f"""
-    <h1>🦊 Fox Detection Report</h1>
     <div class="summary">
         <strong>Generated:</strong> {datetime.fromisoformat(report['metadata']['generated_at']).strftime('%Y-%m-%d %H:%M:%S %Z')}<br>
         <strong>Nights Analyzed:</strong> {report['metadata']['total_nights']}<br>
@@ -493,7 +487,6 @@ def generate_html_report_with_thumbnails(report: Dict) -> str:
     
     return ''.join(html_parts)
 
-
 def get_last_n_nights_data(num_nights: int = 3) -> Tuple[List[int], List[Tuple[datetime, datetime]]]:
     """
     Get night indices and dusk/dawn ranges for the last N nights.
@@ -518,7 +511,6 @@ def get_last_n_nights_data(num_nights: int = 3) -> Tuple[List[int], List[Tuple[d
     except Exception as e:
         logger.error("Failed to calculate time ranges: %s", str(e))
         return [], []
-
 
 if __name__ == "__main__":
     # Configure logging
