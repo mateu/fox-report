@@ -5,6 +5,7 @@ Patched version with enhanced SMTP debugging
 
 from ..report_generator import generate_html_report_with_thumbnails
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from email import encoders
 from email.mime.base import MIMEBase
@@ -492,10 +493,27 @@ class EmailSender:
             logger.error(error_msg)
             return False, "", error_msg
 
-    def _generate_subject(self) -> str:
-        """Generate email subject line."""
-        current_date = datetime.now().strftime('%Y-%m-%d')
-        return f"🦊 Fox Detection Report - {current_date}"
+    def _generate_subject(self, report: Dict) -> str:
+        """Generate email subject line including event count."""
+        # Use Mountain Time as preferred by the user
+        current_date = datetime.now(ZoneInfo("America/Denver")).strftime('%Y-%m-%d')
+        total = 0
+        try:
+            if isinstance(report, dict):
+                totals = report.get('totals')
+                if isinstance(totals, dict) and 'total_events' in totals:
+                    total = int(totals['total_events'])
+                else:
+                    events_by_camera = report.get('events_by_camera', {})
+                    if isinstance(events_by_camera, dict):
+                        total = sum(
+                            (cam_data.get('stats', {}).get('event_count', len(cam_data.get('events', [])))
+                             if isinstance(cam_data, dict) else 0)
+                            for cam_data in events_by_camera.values()
+                        )
+        except Exception:
+            total = 0
+        return f'🦊 Fox Detection Report - {total} events - {current_date}'
 
     def render_email_body(self, report: Dict, markdown_content: str) -> str:
         """
@@ -612,7 +630,7 @@ class EmailSender:
         logger.info("Preparing to send email to %s", self.recipient)
         
         # Generate subject and body
-        subject = self._generate_subject()
+        subject = self._generate_subject(report)
         
         try:
             email_body = self.render_email_body(report, markdown_content)
