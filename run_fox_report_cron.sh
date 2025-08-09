@@ -1,6 +1,6 @@
 #!/bin/bash
 # Wrapper script for running fox report from cron with proper environment
-# This version loads credentials from a separate file for security
+# This version uses uv for Python package management
 
 # Change to project directory
 cd /home/hunter/fox-report || exit 1
@@ -18,11 +18,9 @@ if [ -f .env ]; then
     done < .env
 fi
 
-# Activate virtual environment
-source venv/bin/activate
-
-# Run the fox report script
-python send_fox_report_gmail.py --config config/gmail.yaml --nights 1
+# Run the fox report script using uv
+# uv automatically handles the virtual environment
+/home/hunter/.local/bin/uv run python send_fox_report_gmail.py --config config/gmail.yaml --nights 1
 
 # Exit with the same status as the python script
 exit $?

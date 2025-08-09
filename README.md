@@ -1,3 +1,5 @@
+> **Note**: This project now uses `uv` for Python package management. See [MIGRATION_TO_UV.md](MIGRATION_TO_UV.md) for details.
+
 # 🦊 Fox Detection Report System
 
 A Python-based system for generating and emailing Fox detection reports from Frigate NVR data.
