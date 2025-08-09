@@ -26,15 +26,14 @@ fox-report/
 ├── docs/                  # Documentation
 │   ├── README.md         # Detailed technical documentation
 │   └── ops.md            # Operations and deployment guide
-└── requirements.txt       # Dependencies
+└── pyproject.toml         # Dependencies and project configuration
 ```
 
 ## 🚀 Quick Start
 
 1. **Install dependencies:**
    ```bash
-   source venv/bin/activate
-   pip install -r requirements.txt
+   uv sync
    ```
 
 2. **Configure environment:**
@@ -45,7 +44,7 @@ fox-report/
 
 3. **Send a fox report:**
    ```bash
-   source venv/bin/activate && python send_fox_report_gmail.py --config config/gmail.yaml --nights 3
+   uv run python send_fox_report_gmail.py --config config/gmail.yaml --nights 3
    ```
 
 ## 📧 Features
