@@ -13,18 +13,17 @@ import shutil
 import smtplib
 import subprocess
 import tempfile
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
-from ..config import settings
 from jinja2 import Environment, FileSystemLoader, Template
 
+from ..config import settings
 from ..report_generator import generate_html_report_with_thumbnails
 
 # Load environment variables from .env file
@@ -473,7 +472,9 @@ class EmailSender:
                         debug_file.write("\n=== ERROR ===\n")
                         debug_file.write(f"Error: {smtp_error!s}\n")
                         debug_file.write(f"Error type: {type(smtp_error).__name__}\n")
-                        debug_file.write(f"Timestamp: {datetime.now(tz=UTC).isoformat()}\n")
+                        debug_file.write(
+                            f"Timestamp: {datetime.now(tz=UTC).isoformat()}\n"
+                        )
                 except Exception as e:
                     logger.warning("Failed to write error to debug file: %s", str(e))
 
@@ -690,7 +691,9 @@ class EmailSender:
 
             template = Template(html_template)
             return template.render(
-                generation_time=datetime.now(tz=settings.tz).strftime("%Y-%m-%d %H:%M:%S"),
+                generation_time=datetime.now(tz=settings.tz).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
                 content=html_content,
             )
 

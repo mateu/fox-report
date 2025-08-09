@@ -16,9 +16,9 @@ from datetime import datetime
 import yaml
 from dotenv import load_dotenv
 
+from fox_report.config import settings
 from fox_report.email.sender import EmailSender
 from fox_report.report_generator import generate_fox_report, get_last_n_nights_data
-from fox_report.config import settings
 
 # Load environment variables from .env file
 load_dotenv()

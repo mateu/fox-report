@@ -40,4 +40,4 @@ def send(msg, max_attempts: int = 3) -> None:
             logger.warning(
                 "SMTP failure (%s), retrying %d/%d", exc, attempt, max_attempts
             )
-            time.sleep(2 ** attempt)
+            time.sleep(2**attempt)

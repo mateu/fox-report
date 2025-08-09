@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 
+from .email.sender import EmailSender
 from .report_generator import (
     generate_fox_report,
     get_last_n_nights_data,
 )
-from .email.sender import EmailSender
 
 app = typer.Typer(help="Generate Fox reports")
 
@@ -21,11 +21,11 @@ def report(
         typer.Option("-n", "--nights", help="Number of most recent nights to include"),
     ] = 3,
     email: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("-e", "--email", help="Email address to send the report to"),
     ] = None,
     json_out: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option(
             "--json-out",
             help="Optional path to write the JSON report (defaults to /tmp/fox_report_YYYYMMDD.json)",
@@ -70,9 +70,9 @@ def report(
             }
         }
         sender = EmailSender(config)
-        success, _stdout, stderr = sender.send_email(
-            report, markdown, json_out and str(json_out)
-        )
+        # Ensure the optional attachment path is typed as str | None
+        attachment: str | None = str(json_out) if json_out else None
+        success, _stdout, stderr = sender.send_email(report, markdown, attachment)
         if success:
             typer.secho("Email sent successfully.", fg=typer.colors.GREEN)
         else:

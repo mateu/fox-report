@@ -1,0 +1,29 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      matrix:
+        python: ["3.11", "3.12"]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: yezz123/setup-uv@v1
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install (runtime + dev)
+        run: uv sync --group dev
+
+      - name: Lint (Ruff)
+        run: uv run ruff check .
+
+      - name: Type check (ty)
+        run: uvx ty --strict src/fox_report
+
+      - name: Tests
+        run: uv run pytest -q
+
+      - name: Verify package build
+        run: |
+          uvx hatch build

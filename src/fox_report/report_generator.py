@@ -12,9 +12,9 @@ import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from .config import settings
 from .database_query import get_fox_events
 from .time_resolver import TimeResolver
-from .config import settings
 
 # Configure logging using lazy formatting approach
 logger = logging.getLogger(__name__)
@@ -201,7 +201,9 @@ def generate_fox_report(
 
     # Write JSON to file
     if output_file is None:
-        output_file = datetime.now(tz=settings.tz).strftime("/tmp/fox_report_%Y%m%d.json")
+        output_file = datetime.now(tz=settings.tz).strftime(
+            "/tmp/fox_report_%Y%m%d.json"
+        )
 
     try:
         # Create a copy of the report without thumbnails for JSON output
@@ -675,7 +677,9 @@ if __name__ == "__main__":
         print("=" * 40)
         print(f"Total events: {report['totals']['total_events']}")
         print(f"Cameras with detections: {report['totals']['cameras_with_detections']}")
-        print(f"Report file: /tmp/fox_report_{datetime.now(tz=settings.tz).strftime('%Y%m%d')}.json")
+        print(
+            f"Report file: /tmp/fox_report_{datetime.now(tz=settings.tz).strftime('%Y%m%d')}.json"
+        )
 
     except Exception as e:
         logger.exception("Failed to generate report: %s", str(e))

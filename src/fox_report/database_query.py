@@ -7,8 +7,12 @@ fox detection events within specified time ranges.
 """
 
 import logging
-import sqlite3
 from datetime import datetime
+from typing import Any
+
+from sqlalchemy import create_engine, text
+
+from .config import settings
 
 # Configure logging using lazy formatting approach
 logger = logging.getLogger(__name__)
@@ -37,20 +41,14 @@ def get_fox_events(
         - end_timestamp: Raw Unix timestamp for end time
         - event_id: Unique event identifier
     """
-    # Path to Frigate database
-    db_path = "/home/hunter/frigate/config/frigate.db"
+    # Use SQLAlchemy 2.0 Engine (low-touch; keep raw SQL strings)
+    engine = create_engine(settings.db_url, future=True)
+    logger.info("Connecting to Frigate database at %s", settings.db_url)
 
-    logger.info("Connecting to Frigate database at %s", db_path)
-
-    try:
-        # Connect to the SQLite database
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        # Define the SQL query to fetch fox events
-        # Note: Frigate stores timestamps as Unix epoch floats
-        # Extract confidence from JSON data field
-        query = """
+    # Define the SQL query to fetch fox events
+    # Note: Frigate stores timestamps as Unix epoch floats
+    # Extract confidence from JSON data field
+    query = """
         SELECT
             id,
             json_extract(data, '$.score') as confidence_score,
@@ -72,15 +70,16 @@ def get_fox_events(
             end_time as end_timestamp
         FROM event
         WHERE label='fox'
-        AND start_time BETWEEN strftime('%s', ?) AND strftime('%s', ?)
+        AND start_time BETWEEN strftime('%s', :dusk) AND strftime('%s', :dawn)
         ORDER BY start_time DESC
-        """
+    """
 
-        # Prepare the results list
-        results = []
+    # Prepare the results list
+    results: list[dict[str, Any]] = []
 
-        logger.info("Querying fox events for %d night ranges", len(dusk_dawn_ranges))
+    logger.info("Querying fox events for %d night ranges", len(dusk_dawn_ranges))
 
+    with engine.connect() as conn:
         # Execute the query for each dusk/dawn range
         for i, (dusk, dawn) in enumerate(dusk_dawn_ranges):
             logger.debug(
@@ -90,8 +89,10 @@ def get_fox_events(
                 dawn.strftime("%Y-%m-%d %H:%M:%S"),
             )
 
-            cursor.execute(query, (dusk.isoformat(), dawn.isoformat()))
-            rows = cursor.fetchall()
+            rows = conn.execute(
+                text(query),
+                {"dusk": dusk.isoformat(), "dawn": dawn.isoformat()},
+            ).all()
 
             logger.debug(
                 "Found %d fox events for night %d",
@@ -101,6 +102,7 @@ def get_fox_events(
 
             # Process each row
             for row in rows:
+                # row is a Row object; access by position
                 event = {
                     "event_id": row[0],
                     "confidence": float(row[1]) if row[1] is not None else 0.0,
@@ -120,19 +122,7 @@ def get_fox_events(
                 }
                 results.append(event)
 
-        logger.info("Retrieved %d total fox events across all nights", len(results))
-
-    except sqlite3.Error as e:
-        logger.error("Database error occurred: %s", str(e))
-        raise
-    except Exception as e:
-        logger.error("Unexpected error occurred: %s", str(e))
-        raise
-    finally:
-        # Ensure database connection is closed
-        if "conn" in locals():
-            conn.close()
-            logger.debug("Database connection closed")
+    logger.info("Retrieved %d total fox events across all nights", len(results))
 
     return results
 
@@ -161,38 +151,38 @@ def get_fox_events_with_timeline_segments(
 
     logger.info("Attaching timeline segments to %d fox events", len(events))
 
-    # Add timeline segments for each event
-    db_path = "/home/hunter/frigate/config/frigate.db"
+    engine = create_engine(settings.db_url, future=True)
 
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+    # Query for timeline segments (if the table exists)
+    timeline_exists_sql = text(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='timeline'"
+    )
 
-        # Query for timeline segments (if the table exists)
-        timeline_query = """
-        SELECT name FROM sqlite_master
-        WHERE type='table' AND name='timeline'
-        """
-        cursor.execute(timeline_query)
-        has_timeline_table = cursor.fetchone() is not None
+    with engine.connect() as conn:
+        has_timeline_table = conn.execute(timeline_exists_sql).first() is not None
 
         if has_timeline_table:
             for event in events:
                 # Query timeline segments for this event's time range
-                segment_query = """
-                SELECT timestamp, camera, source_id, class_type, data
-                FROM timeline
-                WHERE camera = ?
-                AND timestamp BETWEEN strftime('%s', ?) AND strftime('%s', ?)
-                ORDER BY timestamp
-                """
-
-                cursor.execute(
-                    segment_query,
-                    (event["camera"], event["start_time"], event["end_time"]),
+                segment_query = text(
+                    """
+                    SELECT timestamp, camera, source_id, class_type, data
+                    FROM timeline
+                    WHERE camera = :camera
+                    AND timestamp BETWEEN strftime('%s', :start_time) AND strftime('%s', :end_time)
+                    ORDER BY timestamp
+                    """
                 )
 
-                segments = cursor.fetchall()
+                segments = conn.execute(
+                    segment_query,
+                    {
+                        "camera": event["camera"],
+                        "start_time": event["start_time"],
+                        "end_time": event["end_time"],
+                    },
+                ).all()
+
                 event["timeline_segments"] = [
                     {
                         "timestamp": seg[0],
@@ -214,15 +204,6 @@ def get_fox_events_with_timeline_segments(
             for event in events:
                 event["timeline_segments"] = []
 
-    except sqlite3.Error as e:
-        logger.error("Error querying timeline segments: %s", str(e))
-        # Continue without timeline segments rather than failing
-        for event in events:
-            event["timeline_segments"] = []
-    finally:
-        if "conn" in locals():
-            conn.close()
-
     return events
 
 
@@ -233,22 +214,17 @@ def test_database_connection() -> bool:
     Returns:
         True if connection successful, False otherwise
     """
-    db_path = "/home/hunter/frigate/config/frigate.db"
+    engine = create_engine(settings.db_url, future=True)
 
     try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        # Simple test query
-        cursor.execute("SELECT COUNT(*) FROM event WHERE label='fox'")
-        fox_count = cursor.fetchone()[0]
-
-        logger.info(
-            "Database connection successful. Found %d fox events total", fox_count
-        )
-        conn.close()
-        return True
-
+        with engine.connect() as conn:
+            fox_count = conn.execute(
+                text("SELECT COUNT(*) FROM event WHERE label='fox'")
+            ).scalar_one()
+            logger.info(
+                "Database connection successful. Found %d fox events total", fox_count
+            )
+            return True
     except Exception as e:
         logger.error("Database connection failed: %s", str(e))
         return False
