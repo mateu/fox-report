@@ -9,15 +9,14 @@ load_dotenv()
 
 
 class Settings(BaseSettings):
-    smtp_host: str = Field("smtp.gmail.com", env="SMTP_HOST")
-    smtp_user: str = Field("", env="SMTP_USER")
-    smtp_pass: str = Field("", env=["SMTP_PASS", "GMAIL_APP_PASSWORD"])
+    smtp_host: str = Field("smtp.gmail.com")
+    smtp_user: str = Field("")
+    smtp_pass: str = Field("")
     tz_local: str = "America/Denver"  # Mountain Time
     # SQLAlchemy database URL. Defaults to local Frigate SQLite DB.
     # Example: "sqlite:////home/hunter/frigate/config/frigate.db"
     db_url: str = Field(
         "sqlite:////home/hunter/frigate/config/frigate.db",
-        env="DB_URL",
     )
 
     @computed_field(return_type=ZoneInfo)
