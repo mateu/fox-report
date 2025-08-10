@@ -8,9 +8,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: yezz123/setup-uv@v1
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+      - uses: yezz123/setup-uv@v1
 
       - name: Install (runtime + dev)
         run: uv sync --group dev
