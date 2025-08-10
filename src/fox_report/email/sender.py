@@ -13,17 +13,17 @@ import shutil
 import smtplib
 import subprocess
 import tempfile
-from datetime import datetime
+from datetime import UTC, datetime
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 from jinja2 import Environment, FileSystemLoader, Template
 
+from ..config import settings
 from ..report_generator import generate_html_report_with_thumbnails
 
 # Load environment variables from .env file
@@ -85,7 +85,7 @@ class EmailSender:
             return False, f"Missing SMTP config fields: {', '.join(missing_fields)}"
 
         # Check for password in config or environment
-        password = self.smtp_config.get("password") or os.getenv("GMAIL_APP_PASSWORD")
+        password = self.smtp_config.get("password") or settings.smtp_pass
         if not password:
             return (
                 False,
@@ -111,7 +111,7 @@ class EmailSender:
         """
         debug_file_path = os.path.join(
             tempfile.gettempdir(),
-            f"smtp_debug_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+            f"smtp_debug_{datetime.now(tz=settings.tz).strftime('%Y%m%d_%H%M%S')}.txt",
         )
 
         try:
@@ -197,7 +197,7 @@ class EmailSender:
             try:
                 with open(debug_file_path, "w", encoding="utf-8") as debug_file:
                     debug_file.write("=== SMTP DEBUG LOG ===\n")
-                    debug_file.write(f"Timestamp: {datetime.now().isoformat()}\n")
+                    debug_file.write(f"Timestamp: {datetime.now(tz=UTC).isoformat()}\n")
                     debug_file.write(f"Images embedded: {len(image_cids)}\n")
                     debug_file.write("=== END DEBUG ===\n")
             except Exception:
@@ -214,7 +214,7 @@ class EmailSender:
                 if self.smtp_config.get("use_tls", True):
                     server.starttls()
 
-                server.login(self.smtp_config["username"], password)
+                server.login(self.smtp_config["username"], str(password))
                 server.sendmail(
                     self.smtp_config["username"], self.recipient, full_message
                 )
@@ -251,7 +251,7 @@ class EmailSender:
         # Create unique debug file path for this attempt
         debug_file_path = os.path.join(
             tempfile.gettempdir(),
-            f"smtp_debug_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+            f"smtp_debug_{datetime.now(tz=settings.tz).strftime('%Y%m%d_%H%M%S')}.txt",
         )
 
         try:
@@ -303,7 +303,7 @@ class EmailSender:
             try:
                 with open(debug_file_path, "w", encoding="utf-8") as debug_file:
                     debug_file.write("=== SMTP DEBUG LOG ===\n")
-                    debug_file.write(f"Timestamp: {datetime.now().isoformat()}\n")
+                    debug_file.write(f"Timestamp: {datetime.now(tz=UTC).isoformat()}\n")
                     debug_file.write(f"Server: {self.smtp_config['server']}\n")
                     debug_file.write(f"Port: {self.smtp_config['port']}\n")
                     debug_file.write(f"Username: {self.smtp_config['username']}\n")
@@ -364,7 +364,7 @@ class EmailSender:
 
                 try:
                     login_response = server.login(
-                        self.smtp_config["username"], password
+                        self.smtp_config["username"], str(password)
                     )
                     logger.info(
                         "SMTP authentication successful - Response code: %s, Message: %s",
@@ -378,8 +378,8 @@ class EmailSender:
                         "SMTP authentication failed - Code: %s, Message: %s",
                         auth_error.smtp_code,
                         auth_error.smtp_error.decode("utf-8")
-                        if auth_error.smtp_error
-                        else "None",
+                        if isinstance(auth_error.smtp_error, bytes)
+                        else (auth_error.smtp_error or "None"),
                     )
                     raise
                 except Exception as auth_error:
@@ -423,7 +423,7 @@ class EmailSender:
                                 debug_file.write("Success: True\n")
                                 debug_file.write("Failed recipients: None\n")
                                 debug_file.write(
-                                    f"Timestamp: {datetime.now().isoformat()}\n"
+                                    f"Timestamp: {datetime.now(tz=UTC).isoformat()}\n"
                                 )
                         except Exception as e:
                             logger.warning(
@@ -452,8 +452,8 @@ class EmailSender:
                         "SMTP data error - Code: %s, Message: %s",
                         data_error.smtp_code,
                         data_error.smtp_error.decode("utf-8")
-                        if data_error.smtp_error
-                        else "None",
+                        if isinstance(data_error.smtp_error, bytes)
+                        else (data_error.smtp_error or "None"),
                     )
                     raise
                 except Exception as send_error:
@@ -472,7 +472,9 @@ class EmailSender:
                         debug_file.write("\n=== ERROR ===\n")
                         debug_file.write(f"Error: {smtp_error!s}\n")
                         debug_file.write(f"Error type: {type(smtp_error).__name__}\n")
-                        debug_file.write(f"Timestamp: {datetime.now().isoformat()}\n")
+                        debug_file.write(
+                            f"Timestamp: {datetime.now(tz=UTC).isoformat()}\n"
+                        )
                 except Exception as e:
                     logger.warning("Failed to write error to debug file: %s", str(e))
 
@@ -572,7 +574,7 @@ class EmailSender:
     def _generate_subject(self, report: dict) -> str:
         """Generate email subject line including event count."""
         # Use Mountain Time as preferred by the user
-        current_date = datetime.now(ZoneInfo("America/Denver")).strftime("%Y-%m-%d")
+        current_date = datetime.now(tz=settings.tz).strftime("%Y-%m-%d")
         total = 0
         try:
             if isinstance(report, dict):
@@ -689,7 +691,9 @@ class EmailSender:
 
             template = Template(html_template)
             return template.render(
-                generation_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                generation_time=datetime.now(tz=settings.tz).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                ),
                 content=html_content,
             )
 
@@ -790,7 +794,7 @@ def main():
     # Create test report
     test_report = {
         "metadata": {
-            "generation_time": datetime.now().isoformat(),
+            "generation_time": datetime.now(tz=UTC).isoformat(),
             "nights_analyzed": 1,
         },
         "totals": {"total_events": 2, "cameras_with_detections": 2},

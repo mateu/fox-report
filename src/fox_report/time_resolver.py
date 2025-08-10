@@ -7,8 +7,8 @@ either the astral library with geographic coordinates or static fallback times.
 """
 
 import logging
-from datetime import date, datetime, timedelta
-from typing import Any
+from datetime import date, datetime, timedelta, tzinfo
+from typing import Any, cast
 
 import pytz
 import yaml
@@ -70,7 +70,7 @@ class TimeResolver:
 
         return logger
 
-    def _get_timezone(self) -> pytz.BaseTzInfo:
+    def _get_timezone(self) -> tzinfo:
         """Get timezone from config or calculate based on coordinates."""
         location_config = self.config.get("location", {})
 
@@ -78,14 +78,14 @@ class TimeResolver:
         if "timezone" in location_config:
             tz_name = location_config["timezone"]
             try:
-                return pytz.timezone(tz_name)
+                return cast(tzinfo, pytz.timezone(tz_name))
             except pytz.UnknownTimeZoneError:
                 self.logger.warning("Unknown timezone %s, falling back to UTC", tz_name)
-                return pytz.UTC
+                return cast(tzinfo, pytz.UTC)
 
         # Fallback to UTC if no timezone configured
         self.logger.info("No timezone configured, using UTC")
-        return pytz.UTC
+        return cast(tzinfo, pytz.UTC)
 
     def _calculate_astral_times(self, target_date: date) -> tuple[datetime, datetime]:
         """
@@ -197,17 +197,30 @@ class TimeResolver:
             ) from e
 
         # Create datetime objects for the target date
-        dusk_dt = timezone.localize(datetime.combine(target_date, start_time))
+        dt_start = datetime.combine(target_date, start_time)
+        localize = getattr(timezone, "localize", None)
+        if callable(localize):
+            dusk_dt = localize(dt_start)
+        else:
+            dusk_dt = dt_start.replace(tzinfo=timezone)
 
         # Handle end time that crosses midnight
         if end_time < start_time:
             # End time is next day
-            dawn_dt = timezone.localize(
-                datetime.combine(target_date + timedelta(days=1), end_time)
-            )
+            dt_end = datetime.combine(target_date + timedelta(days=1), end_time)
+            localize = getattr(timezone, "localize", None)
+            if callable(localize):
+                dawn_dt = localize(dt_end)
+            else:
+                dawn_dt = dt_end.replace(tzinfo=timezone)
         else:
             # End time is same day
-            dawn_dt = timezone.localize(datetime.combine(target_date, end_time))
+            dt_end = datetime.combine(target_date, end_time)
+            localize = getattr(timezone, "localize", None)
+            if callable(localize):
+                dawn_dt = localize(dt_end)
+            else:
+                dawn_dt = dt_end.replace(tzinfo=timezone)
 
         self.logger.debug("Using static times - Dusk: %s, Dawn: %s", dusk_dt, dawn_dt)
 
