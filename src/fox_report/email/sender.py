@@ -214,7 +214,7 @@ class EmailSender:
                 if self.smtp_config.get("use_tls", True):
                     server.starttls()
 
-                server.login(self.smtp_config["username"], password)
+                server.login(self.smtp_config["username"], str(password))
                 server.sendmail(
                     self.smtp_config["username"], self.recipient, full_message
                 )
@@ -364,7 +364,7 @@ class EmailSender:
 
                 try:
                     login_response = server.login(
-                        self.smtp_config["username"], password
+                        self.smtp_config["username"], str(password)
                     )
                     logger.info(
                         "SMTP authentication successful - Response code: %s, Message: %s",
@@ -378,8 +378,8 @@ class EmailSender:
                         "SMTP authentication failed - Code: %s, Message: %s",
                         auth_error.smtp_code,
                         auth_error.smtp_error.decode("utf-8")
-                        if auth_error.smtp_error
-                        else "None",
+                        if isinstance(auth_error.smtp_error, bytes)
+                        else (auth_error.smtp_error or "None"),
                     )
                     raise
                 except Exception as auth_error:
@@ -452,8 +452,8 @@ class EmailSender:
                         "SMTP data error - Code: %s, Message: %s",
                         data_error.smtp_code,
                         data_error.smtp_error.decode("utf-8")
-                        if data_error.smtp_error
-                        else "None",
+                        if isinstance(data_error.smtp_error, bytes)
+                        else (data_error.smtp_error or "None"),
                     )
                     raise
                 except Exception as send_error:

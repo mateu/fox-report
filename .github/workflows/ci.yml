@@ -19,7 +19,7 @@ jobs:
         run: uv run ruff check .
 
       - name: Type check (ty)
-        run: uvx ty --strict src/fox_report
+        run: uvx ty check src/fox_report
 
       - name: Tests
         run: uv run pytest -q
