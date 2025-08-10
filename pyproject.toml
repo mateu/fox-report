@@ -27,7 +27,7 @@ fox-report = "fox_report.cli:app"
 dev = [
     "ruff>=0.8.0",
     "pre-commit>=3.0.0",
-    "ty>=0.1.0",
+    "ty<=0.0.1a17",
     "pytest>=8.4",
     "pytest-cov>=6.2",
 ]
