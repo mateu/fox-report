@@ -40,21 +40,23 @@ class EmailSendError(Exception):
 class EmailSender:
     """Handles email template rendering and sending via Gmail SMTP or system mail."""
 
-    def __init__(self, config: dict):
+    def __init__(self, recipient_override: str | None = None):
         """
-        Initialize EmailSender with configuration.
+        Initialize EmailSender with configuration from settings.
 
         Args:
-            config: Configuration dictionary with email settings
+            recipient_override: Optional recipient email to override default from settings
         """
-        self.config = config
-        self.email_config = config.get("email", {})
-        self.recipient = self.email_config.get("recipient", "hunter@406mt.org")
-        self.format_type = self.email_config.get("format", "html")
+        # Use settings for configuration, with optional recipient override
+        self.recipient = recipient_override or settings.email_recipient
+        self.sender = settings.email_sender
+        self.format_type = "html"  # Default format
 
-        # SMTP configuration
-        self.smtp_config = self.email_config.get("smtp", {})
-        self.use_smtp = self.smtp_config.get("enabled", False)
+        # SMTP configuration from settings
+        self.smtp_host = settings.smtp_host
+        self.smtp_user = settings.smtp_user
+        self.smtp_pass = settings.smtp_pass
+        self.use_smtp = True  # Always use SMTP for Gmail
 
         # Set up Jinja2 environment for template rendering
         try:
@@ -76,20 +78,15 @@ class EmailSender:
         if not self.use_smtp:
             return False, "SMTP not enabled"
 
-        required_fields = ["server", "port", "username"]
-        missing_fields = [
-            field for field in required_fields if not self.smtp_config.get(field)
-        ]
-
-        if missing_fields:
-            return False, f"Missing SMTP config fields: {', '.join(missing_fields)}"
-
-        # Check for password in config or environment
-        password = self.smtp_config.get("password") or settings.smtp_pass
-        if not password:
+        # Check required configuration from settings
+        if not self.smtp_host:
+            return False, "Missing SMTP host configuration"
+        if not self.smtp_user:
+            return False, "Missing SMTP user configuration"
+        if not self.smtp_pass:
             return (
                 False,
-                "No SMTP password found in config or GMAIL_APP_PASSWORD environment variable",
+                "No SMTP password found in GMAIL_APP_PASSWORD environment variable",
             )
 
         return True, ""
@@ -116,13 +113,11 @@ class EmailSender:
 
         try:
             # Get password from config or environment
-            password = self.smtp_config.get("password") or os.getenv(
-                "GMAIL_APP_PASSWORD"
-            )
+            password = self.smtp_pass or os.getenv("GMAIL_APP_PASSWORD")
 
             # Create message with related parts for embedded images
             msg = MIMEMultipart("related")
-            msg["From"] = self.smtp_config["username"]
+            msg["From"] = settings.email_sender
             msg["To"] = self.recipient
             msg["Subject"] = subject
 
@@ -163,9 +158,24 @@ class EmailSender:
             msg_alternative.attach(html_part)
 
             # Attach each image with its Content-ID
-            for cid, b64_data in image_cids:
+            for cid, data_src in image_cids:
                 try:
-                    image_data = base64.b64decode(b64_data)
+                    image_data = None
+                    # First, try to decode as base64 data
+                    try:
+                        image_data = base64.b64decode(data_src, validate=True)
+                    except Exception:
+                        # If not valid base64, treat it as a filesystem path and read bytes
+                        if os.path.exists(data_src):
+                            with open(data_src, "rb") as f:
+                                image_data = f.read()
+                        else:
+                            logger.warning(
+                                "Thumbnail source not base64 and not a file path: %s",
+                                data_src,
+                            )
+                            continue
+
                     img = MIMEImage(image_data)
                     img.add_header("Content-ID", f"<{cid}>")
                     img.add_header("Content-Disposition", "inline")
@@ -206,18 +216,14 @@ class EmailSender:
             # Connect and send
             server = None
             try:
-                server = smtplib.SMTP(
-                    self.smtp_config["server"], self.smtp_config["port"]
-                )
+                server = smtplib.SMTP(settings.smtp_host, 587)
                 server.set_debuglevel(1)
 
-                if self.smtp_config.get("use_tls", True):
+                if True:
                     server.starttls()
 
-                server.login(self.smtp_config["username"], str(password))
-                server.sendmail(
-                    self.smtp_config["username"], self.recipient, full_message
-                )
+                server.login(settings.smtp_user, str(password))
+                server.sendmail(settings.smtp_user, self.recipient, full_message)
 
                 logger.info("Email with embedded images sent successfully")
                 return True, "Email sent successfully", ""
@@ -256,22 +262,20 @@ class EmailSender:
 
         try:
             # Get password from config or environment
-            password = self.smtp_config.get("password") or os.getenv(
-                "GMAIL_APP_PASSWORD"
-            )
+            password = self.smtp_pass or os.getenv("GMAIL_APP_PASSWORD")
 
             # Log SMTP configuration (without password)
             logger.debug(
                 "SMTP Configuration - Server: %s, Port: %s, Username: %s, TLS: %s",
-                self.smtp_config["server"],
-                self.smtp_config["port"],
-                self.smtp_config["username"],
-                self.smtp_config.get("use_tls", True),
+                settings.smtp_host,
+                587,
+                settings.smtp_user,
+                True,
             )
 
             # Create message
             msg = MIMEMultipart()
-            msg["From"] = self.smtp_config["username"]
+            msg["From"] = settings.email_sender
             msg["To"] = self.recipient
             msg["Subject"] = subject
 
@@ -304,13 +308,11 @@ class EmailSender:
                 with open(debug_file_path, "w", encoding="utf-8") as debug_file:
                     debug_file.write("=== SMTP DEBUG LOG ===\n")
                     debug_file.write(f"Timestamp: {datetime.now(tz=UTC).isoformat()}\n")
-                    debug_file.write(f"Server: {self.smtp_config['server']}\n")
-                    debug_file.write(f"Port: {self.smtp_config['port']}\n")
-                    debug_file.write(f"Username: {self.smtp_config['username']}\n")
+                    debug_file.write(f"Server: {self.smtp_host}\n")
+                    debug_file.write("Port: 587\n")
+                    debug_file.write(f"Username: {self.smtp_user}\n")
                     debug_file.write(f"Recipient: {self.recipient}\n")
-                    debug_file.write(
-                        f"Use TLS: {self.smtp_config.get('use_tls', True)}\n"
-                    )
+                    debug_file.write(f"Use TLS: {True}\n")
                     debug_file.write("=== FULL EMAIL MESSAGE ===\n")
                     debug_file.write(full_message)
                     debug_file.write("\n=== SMTP TRANSACTION LOG ===\n")
@@ -327,25 +329,23 @@ class EmailSender:
                 # Step 1: Connect to SMTP server
                 logger.info(
                     "Attempting SMTP connection to %s:%s",
-                    self.smtp_config["server"],
-                    self.smtp_config["port"],
+                    settings.smtp_host,
+                    587,
                 )
 
-                server = smtplib.SMTP(
-                    self.smtp_config["server"], self.smtp_config["port"]
-                )
+                server = smtplib.SMTP(settings.smtp_host, 587)
 
                 # Enable debug output to capture SMTP protocol conversation
                 server.set_debuglevel(1)
 
                 logger.info(
                     "SMTP connection established successfully to %s:%s",
-                    self.smtp_config["server"],
-                    self.smtp_config["port"],
+                    settings.smtp_host,
+                    587,
                 )
 
                 # Step 2: Start TLS if configured
-                if self.smtp_config.get("use_tls", True):
+                if True:
                     logger.info("Starting TLS encryption")
                     tls_response = server.starttls()
                     logger.info(
@@ -359,13 +359,11 @@ class EmailSender:
                 # Step 3: Authenticate
                 logger.info(
                     "Attempting SMTP authentication for user: %s",
-                    self.smtp_config["username"],
+                    settings.smtp_user,
                 )
 
                 try:
-                    login_response = server.login(
-                        self.smtp_config["username"], str(password)
-                    )
+                    login_response = server.login(settings.smtp_user, str(password))
                     logger.info(
                         "SMTP authentication successful - Response code: %s, Message: %s",
                         login_response[0],
@@ -389,13 +387,13 @@ class EmailSender:
                 # Step 4: Send email
                 logger.info(
                     "Sending email from %s to %s",
-                    self.smtp_config["username"],
+                    settings.smtp_user,
                     self.recipient,
                 )
 
                 try:
                     send_result = server.sendmail(
-                        self.smtp_config["username"], self.recipient, full_message
+                        settings.smtp_user, self.recipient, full_message
                     )
 
                     # sendmail() returns a dictionary of failed recipients
@@ -776,20 +774,8 @@ def main():
     )
 
     # Test configuration
-    test_config = {
-        "email": {
-            "recipient": "hunter@406mt.org",
-            "format": "html",
-            "smtp": {
-                "enabled": True,
-                "server": "smtp.gmail.com",
-                "port": 587,
-                "use_tls": True,
-                "username": "hunter@406mt.org",
-                "password": "",  # Will use GMAIL_APP_PASSWORD env var
-            },
-        }
-    }
+    # Test with environment variables (no config needed)
+    test_recipient = "user@example.com"  # Override recipient for testing
 
     # Create test report
     test_report = {
@@ -813,7 +799,7 @@ Both events occurred around 9:59 AM on August 3rd."""
 
     # Test email sending
     try:
-        sender = EmailSender(test_config)
+        sender = EmailSender(recipient_override=test_recipient)
         success, stdout, stderr = sender.send_email(test_report, test_markdown)
 
         if success:

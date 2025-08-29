@@ -44,7 +44,7 @@ def generate_timeline_url(
     )
 
     # Generate the URL
-    return f"https://frig.mso.mt/api/{camera}/start/{padded_start}/end/{padded_end}/clip.mp4"
+    return f"{settings.frigate_base_url}/api/{camera}/start/{padded_start}/end/{padded_end}/clip.mp4"
 
 
 # Mountain Time timezone
@@ -334,7 +334,7 @@ def generate_markdown_report(report: dict) -> str:
 
                 md_lines.append(
                     f"- {start_time} | Confidence: {confidence_pct:.0f}% | "
-                    f"Duration: {duration_str} | [Event](https://frig.mso.mt/api/events/{event['event_id']}/clip.mp4){timeline_link}"
+                    f"Duration: {duration_str} | [Event]({settings.frigate_base_url}/api/events/{event['event_id']}/clip.mp4){timeline_link}"
                 )
 
             if len(events) > 5:
@@ -364,6 +364,67 @@ def generate_html_report_with_thumbnails(report: dict) -> str:
         HTML formatted string with embedded thumbnails
     """
     html_parts = []
+
+    # Helper: resolve/encode thumbnail into base64 string
+    import base64
+    import os
+    import urllib.request
+
+    def _event_thumb_b64(ev: dict) -> str | None:
+        """Return base64-encoded JPEG for the event thumbnail.
+
+        Strategy:
+        - If ev["thumbnail"] already looks like base64, use it.
+        - If ev["thumbnail"] is a filesystem path, read and encode.
+        - Otherwise, try fetching from Frigate API.
+
+        """
+        val = ev.get("thumbnail")
+        # Base64 already? Heuristic check
+        if (
+            isinstance(val, str)
+            and val
+            and not val.startswith("/")
+            and not val.startswith("http")
+        ):
+            import re as _re
+
+            if _re.fullmatch(r"[A-Za-z0-9+/=\n\r]+", val.strip() or ""):
+                return val.strip()
+
+        # Filesystem path
+        if isinstance(val, str) and val.startswith("/"):
+            from .config import settings as _settings
+
+            dburl = _settings.db_url
+            frig_root = None
+            if dburl.startswith("sqlite:////") and "/config/frigate.db" in dburl:
+                root = dburl.removeprefix("sqlite:////").split("/config/frigate.db", 1)[
+                    0
+                ]
+                frig_root = root
+            abs_path = (
+                os.path.join(frig_root or "/", val.lstrip("/")) if frig_root else val
+            )
+            try:
+                with open(abs_path, "rb") as f:
+                    return base64.b64encode(f.read()).decode("ascii")
+            except Exception:
+                pass
+
+        # Fetch from Frigate API
+        try:
+            eid = ev.get("event_id")
+            if eid:
+                url = f"{settings.frigate_base_url}/api/events/{eid}/thumbnail.jpg"
+                with urllib.request.urlopen(url, timeout=3) as resp:
+                    if resp.status == 200:
+                        data = resp.read()
+                        return base64.b64encode(data).decode("ascii")
+        except Exception:
+            pass
+
+        return None
 
     # HTML header with styling
     html_parts.append("""
@@ -512,16 +573,18 @@ def generate_html_report_with_thumbnails(report: dict) -> str:
                     )
                     timeline_link = f'<a href="{timeline_url}">Timeline</a>'
 
-                event_link = f'<a href="https://frig.mso.mt/api/events/{event["event_id"]}/clip.mp4">Event</a>'
+                event_link = f'<a href="{settings.frigate_base_url}/api/events/{event["event_id"]}/clip.mp4">Event</a>'
 
                 # Create event HTML with clickable thumbnail
                 thumbnail_html = ""
-                event_url = (
-                    f"https://frig.mso.mt/api/events/{event['event_id']}/clip.mp4"
-                )
-                if event.get("thumbnail"):
+                event_url = f"{settings.frigate_base_url}/api/events/{event['event_id']}/clip.mp4"
+                _thumb_b64 = _event_thumb_b64(event)
+                if _thumb_b64:
                     # Make thumbnail clickable - links to event video
-                    thumbnail_html = f'<a href="{event_url}" title="Click to view event video"><img src="data:image/jpeg;base64,{event["thumbnail"]}" class="thumbnail" alt="Fox detection thumbnail"></a>'
+                    thumbnail_html = (
+                        f'<a href="{event_url}" title="Click to view event video">'
+                        f'<img src="data:image/jpeg;base64,{_thumb_b64}" class="thumbnail" alt="Fox detection thumbnail"></a>'
+                    )
 
                 html_parts.append(f"""
                 <div class="event">

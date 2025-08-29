@@ -255,7 +255,9 @@ def main(
             logger.info("Attempting to send email...")
 
             try:
-                email_sender = EmailSender(config)
+                # Extract recipient from config and use new EmailSender interface
+                recipient = config.get("email", {}).get("recipient")
+                email_sender = EmailSender(recipient_override=recipient)
                 success, success_msg, error_msg = email_sender.send_email(
                     report, markdown, json_path
                 )

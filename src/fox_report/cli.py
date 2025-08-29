@@ -53,23 +53,8 @@ def report(
 
     # If email address provided, send the report
     if email:
-        config = {
-            "email": {
-                "recipient": email,
-                "format": "html" if html else "text",
-                # SMTP settings are taken from env or your config file inside EmailSender
-                "smtp": {
-                    # Leave as-is; EmailSender will validate/use env like GMAIL_APP_PASSWORD
-                    "enabled": True,
-                    "server": "smtp.gmail.com",
-                    "port": 587,
-                    "use_tls": True,
-                    # username is typically the sender address
-                    "username": email,
-                },
-            }
-        }
-        sender = EmailSender(config)
+        # Use simplified EmailSender with optional recipient override
+        sender = EmailSender(recipient_override=email)
         # Ensure the optional attachment path is typed as str | None
         attachment: str | None = str(json_out) if json_out else None
         success, _stdout, stderr = sender.send_email(report, markdown, attachment)
