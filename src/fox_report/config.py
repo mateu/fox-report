@@ -1,3 +1,4 @@
+import os
 from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
@@ -27,9 +28,9 @@ class Settings(BaseSettings):
     tz_local: str = "America/Denver"  # Mountain Time
 
     # SQLAlchemy database URL. Defaults to local Frigate SQLite DB.
-    # Example: "sqlite:////home/hunter/frigate/config/frigate.db"
+    # Uses expanduser to support different users and file URI with read-only mode
     db_url: str = Field(
-        "sqlite:////home/hunter/frigate/config/frigate.db",
+        f"sqlite:///file:{os.path.expanduser('~/frigate/config/frigate.db')}?mode=ro&uri=true",
     )
 
     # Frigate base URL for API access and links (without trailing slash)

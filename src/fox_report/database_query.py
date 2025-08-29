@@ -42,7 +42,11 @@ def get_fox_events(
         - event_id: Unique event identifier
     """
     # Use SQLAlchemy 2.0 Engine (low-touch; keep raw SQL strings)
-    engine = create_engine(settings.db_url, future=True)
+    engine = create_engine(
+        settings.db_url,
+        future=True,
+        connect_args={"check_same_thread": False, "timeout": 30},
+    )
     logger.info("Connecting to Frigate database at %s", settings.db_url)
 
     # Define the SQL query to fetch fox events
@@ -151,7 +155,11 @@ def get_fox_events_with_timeline_segments(
 
     logger.info("Attaching timeline segments to %d fox events", len(events))
 
-    engine = create_engine(settings.db_url, future=True)
+    engine = create_engine(
+        settings.db_url,
+        future=True,
+        connect_args={"check_same_thread": False, "timeout": 30},
+    )
 
     # Query for timeline segments (if the table exists)
     timeline_exists_sql = text(
@@ -214,7 +222,11 @@ def test_database_connection() -> bool:
     Returns:
         True if connection successful, False otherwise
     """
-    engine = create_engine(settings.db_url, future=True)
+    engine = create_engine(
+        settings.db_url,
+        future=True,
+        connect_args={"check_same_thread": False, "timeout": 30},
+    )
 
     try:
         with engine.connect() as conn:
