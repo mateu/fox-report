@@ -14,7 +14,9 @@ nights:
 # Email notification settings
 email:
   # Default recipient for observation reports
-  recipient: "hunter@406mt.org"
+  # Note: The actual email addresses come from environment variables via settings.py
+  # This recipient field can be left empty or set to a default for template purposes
+  recipient: ""
 
   # Email format preference
   format: "html"  # Options: html, text, json
@@ -25,9 +27,8 @@ email:
     server: "smtp.gmail.com"
     port: 587
     use_tls: true
-    username: "hunter@406mt.org"
-    # Password: Use environment variable GMAIL_APP_PASSWORD (see .env.example)
-    # Leave password field empty - will automatically use GMAIL_APP_PASSWORD env var
+    # Note: SMTP username and password come from environment variables via settings.py
+    username: ""
     password: ""
 
 # Geographic location for sunset/sunrise calculations

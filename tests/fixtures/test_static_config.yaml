@@ -14,7 +14,7 @@ nights:
 # Email notification settings
 email:
   # Default recipient for observation reports
-  recipient: "hunter@406mt.org"
+  recipient: "test@example.com"
 
   # Email format preference
   format: "html"  # Options: html, text, json
