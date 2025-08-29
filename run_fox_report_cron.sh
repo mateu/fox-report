@@ -3,7 +3,7 @@
 # This version uses uv for Python package management
 
 # Change to project directory
-cd /home/hunter/fox-report || exit 1
+cd /home/${USER}/fox-report || exit 1
 
 # Load environment variables from .env file if it exists
 # Using a more robust method that handles quotes and spaces
@@ -20,7 +20,7 @@ fi
 
 # Run the fox report script using uv
 # uv automatically handles the virtual environment
-/home/hunter/.local/bin/uv run python send_fox_report_gmail.py --config config/gmail.yaml --nights 1
+/home/${USER}/.local/bin/uv run python send_fox_report_gmail.py --config config/gmail.yaml --nights 1
 
 # Exit with the same status as the python script
 exit $?

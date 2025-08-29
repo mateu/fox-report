@@ -8,13 +8,13 @@
 
 ### Option 1: Direct execution with uv (Recommended)
 ```bash
-cd /home/hunter/fox-report
+cd /home/${USER}/fox-report
 uv run python send_fox_report_gmail.py --nights 10 --verbose --config config/gmail.yaml
 ```
 
 ### Option 2: Activate venv first (Traditional)
 ```bash
-cd /home/hunter/fox-report
+cd /home/${USER}/fox-report
 source .venv/bin/activate
 python send_fox_report_gmail.py --nights 10 --verbose --config config/gmail.yaml
 deactivate  # when done
@@ -53,12 +53,12 @@ uv pip list
 
 ### Before (pip/venv):
 ```bash
-cd /home/hunter/fox-report && source venv/bin/activate && python send_fox_report_gmail.py --nights 10 --verbose --config config/gmail.yaml
+cd /home/${USER}/fox-report && source venv/bin/activate && python send_fox_report_gmail.py --nights 10 --verbose --config config/gmail.yaml
 ```
 
 ### After (uv):
 ```bash
-cd /home/hunter/fox-report && uv run python send_fox_report_gmail.py --nights 10 --verbose --config config/gmail.yaml
+cd /home/${USER}/fox-report && uv run python send_fox_report_gmail.py --nights 10 --verbose --config config/gmail.yaml
 ```
 
 ## 🎯 Benefits of uv

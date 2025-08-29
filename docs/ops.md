@@ -11,7 +11,7 @@
 ```bash
 # Daily fox report at 6:00 AM Mountain Time
 CRON_TZ=America/Denver
-0 6 * * * cd /home/hunter/fox-report && source venv/bin/activate && python send_fox_report_gmail.py --config config/gmail.yaml --nights 1 >> /tmp/fox_report_cron.log 2>&1
+0 6 * * * cd /home/${USER}/fox-report && source venv/bin/activate && python send_fox_report_gmail.py --config config/gmail.yaml --nights 1 >> /tmp/fox_report_cron.log 2>&1
 ```
 
 **Why this matters**:
@@ -55,7 +55,7 @@ If the cron job stops working:
 3. **Check logs**: `tail -f /tmp/fox_report_cron.log`
 4. **Test manually**:
    ```bash
-   cd /home/hunter/fox-report && source venv/bin/activate && python send_fox_report_gmail.py --config config/gmail.yaml --nights 1
+   cd /home/${USER}/fox-report && source venv/bin/activate && python send_fox_report_gmail.py --config config/gmail.yaml --nights 1
    ```
 5. **Verify timezone**: The job should show MDT/MST timestamps in logs
 
@@ -69,7 +69,7 @@ If the cron job stops working:
 
 **Issue**: The cron environment doesn't automatically load environment variables from `.env` files, causing Gmail SMTP authentication to fail and falling back to local postfix mail delivery.
 
-**Solution**: Created a wrapper script `/home/hunter/fox-report/run_fox_report_cron.sh` that:
+**Solution**: Created a wrapper script `/home/${USER}/fox-report/run_fox_report_cron.sh` that:
 1. Explicitly exports all required environment variables including the Gmail app password
 2. Activates the Python virtual environment
 3. Runs the fox report script with proper authentication
@@ -85,12 +85,12 @@ To verify emails are being sent through Gmail SMTP (not local postfix):
 
 1. Check the email headers - should show `Received: from smtp.gmail.com`
 2. Monitor logs: `tail -f /tmp/fox_report_cron.log`
-3. Look for: `INFO: Email sent successfully via SMTP to hunter@406mt.org`
+3. Look for: `INFO: Email sent successfully via SMTP to recipient@example.com`
 4. If you see postfix logs in journalctl during cron execution, the Gmail SMTP is not working
 
 ### Wrapper Script
 
-The cron job uses `/home/hunter/fox-report/run_fox_report_cron.sh` which:
+The cron job uses `/home/${USER}/fox-report/run_fox_report_cron.sh` which:
 - Sets up the complete environment
 - Handles password strings with spaces correctly
 - Ensures Gmail SMTP authentication works properly
@@ -98,7 +98,7 @@ The cron job uses `/home/hunter/fox-report/run_fox_report_cron.sh` which:
 
 ⚠️ **Security Note**: The wrapper script contains credentials. Ensure proper file permissions:
 ```bash
-chmod 700 /home/hunter/fox-report/run_fox_report_cron.sh
+chmod 700 /home/${USER}/fox-report/run_fox_report_cron.sh
 ```
 
 ## Security Best Practices

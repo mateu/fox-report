@@ -51,7 +51,7 @@ Where:
 ## Testing
 Run the report generator to test:
 ```bash
-cd /home/hunter/fox-report
+cd /home/${USER}/fox-report
 source venv/bin/activate
 python3 src/fox_report/report_generator.py
 ```

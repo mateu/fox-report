@@ -73,7 +73,7 @@ The thumbnails from Frigate's database are already base64-encoded, so we embed t
 
 To test the new HTML report with thumbnails:
 ```bash
-cd /home/hunter/fox-report
+cd /home/${USER}/fox-report
 source venv/bin/activate
 
 # Generate test report
