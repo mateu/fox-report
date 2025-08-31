@@ -30,7 +30,7 @@ repos:
       - id: check-case-conflict
       - id: check-executables-have-shebangs
         # Only check files that should be executable (scripts, not library modules)
-        exclude: '^(src/|tests/|backups/)'
+        exclude: '^(src/|tests/)'
 
   # Modernize syntax where safe per Python 3.11+
   - repo: https://github.com/asottile/pyupgrade

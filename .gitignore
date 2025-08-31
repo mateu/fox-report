@@ -17,7 +17,6 @@ __pycache__/
 # Directory-specific ignores
 logs/
 output/
-backups/*.py
 .venv/
 config/config.yaml
 
