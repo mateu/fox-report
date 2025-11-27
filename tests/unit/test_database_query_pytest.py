@@ -10,7 +10,8 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
-from database_query_enhanced import (
+
+from fox_report.database_query import (
     DatabaseError,
     DatabaseLockError,
     _attempt_database_connection,
@@ -170,10 +171,10 @@ class TestDatabaseQuery:
         """Test get_fox_events function with basic inputs."""
         with (
             patch(
-                "database_query_enhanced._attempt_database_connection"
+                "fox_report.database_query._attempt_database_connection"
             ) as mock_connect,
             patch(
-                "database_query_enhanced._validate_media_files",
+                "fox_report.database_query._validate_media_files",
                 return_value=mock_event_data,
             ),
         ):
@@ -209,7 +210,7 @@ class TestDatabaseQuery:
     def test_get_fox_events_database_error(self):
         """Test get_fox_events with database error."""
         with patch(
-            "database_query_enhanced._attempt_database_connection",
+            "fox_report.database_query._attempt_database_connection",
             side_effect=DatabaseError("Database error"),
         ):
             nights = [0]
@@ -224,10 +225,10 @@ class TestDatabaseQuery:
         """Test get_fox_events_with_timeline_segments function."""
         with (
             patch(
-                "database_query_enhanced._attempt_database_connection"
+                "fox_report.database_query._attempt_database_connection"
             ) as mock_connect,
             patch(
-                "database_query_enhanced._validate_media_files",
+                "fox_report.database_query._validate_media_files",
                 return_value=mock_event_data,
             ),
         ):
@@ -270,10 +271,10 @@ class TestDatabaseQuery:
 
         with (
             patch(
-                "database_query_enhanced._attempt_database_connection"
+                "fox_report.database_query._attempt_database_connection"
             ) as mock_connect,
             patch(
-                "database_query_enhanced._validate_media_files",
+                "fox_report.database_query._validate_media_files",
                 return_value=mock_events_with_timeline,
             ),
         ):
@@ -310,9 +311,9 @@ class TestDatabaseQuery:
         """Test functions with no events found."""
         with (
             patch(
-                "database_query_enhanced._attempt_database_connection"
+                "fox_report.database_query._attempt_database_connection"
             ) as mock_connect,
-            patch("database_query_enhanced._validate_media_files", return_value=[]),
+            patch("fox_report.database_query._validate_media_files", return_value=[]),
         ):
             # Mock database connection and cursor with no results
             mock_cursor = MagicMock()
@@ -338,14 +339,14 @@ class TestDatabaseQuery:
     def test_test_database_connection(self):
         """Test the database connection test function."""
         with patch(
-            "database_query_enhanced._attempt_database_connection",
+            "fox_report.database_query._attempt_database_connection",
             return_value=MagicMock(),
         ):
             result = test_database_connection()
             assert result is True
 
         with patch(
-            "database_query_enhanced._attempt_database_connection",
+            "fox_report.database_query._attempt_database_connection",
             side_effect=DatabaseError("No DB"),
         ):
             result = test_database_connection()
@@ -358,10 +359,10 @@ class TestDatabaseQuery:
         """Test that correct number of database queries are made for multiple nights."""
         with (
             patch(
-                "database_query_enhanced._attempt_database_connection"
+                "fox_report.database_query._attempt_database_connection"
             ) as mock_connect,
             patch(
-                "database_query_enhanced._validate_media_files",
+                "fox_report.database_query._validate_media_files",
                 return_value=mock_event_data,
             ),
         ):
@@ -413,7 +414,7 @@ class TestDatabaseQueryIntegration:
             # This might fail if Frigate DB paths don't exist, which is expected in test env
             # We're mainly testing that the function structure works
             with patch(
-                "database_query_enhanced._attempt_database_connection"
+                "fox_report.database_query._attempt_database_connection"
             ) as mock_connect:
                 mock_cursor = MagicMock()
                 mock_cursor.fetchall.return_value = []

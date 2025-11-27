@@ -22,7 +22,7 @@ def run_command(cmd):
 def test_help():
     """Test help output"""
     print("Testing help output...")
-    exit_code, stdout, stderr = run_command("python3 send_fox_report_gmail.py --help")
+    exit_code, stdout, _stderr = run_command("python3 send_fox_report_gmail.py --help")
     assert exit_code == 6, f"Expected exit code 6, got {exit_code}"
     assert "Frigate Fox detection reports" in stdout
     assert "Exit Codes:" in stdout
@@ -32,7 +32,7 @@ def test_help():
 def test_mutually_exclusive_args():
     """Test mutually exclusive arguments"""
     print("Testing mutually exclusive arguments...")
-    exit_code, stdout, stderr = run_command(
+    exit_code, stdout, _stderr = run_command(
         "python3 send_fox_report_gmail.py --verbose --quiet"
     )
     assert exit_code == 6, f"Expected exit code 6, got {exit_code}"
@@ -43,7 +43,7 @@ def test_mutually_exclusive_args():
 def test_invalid_nights():
     """Test invalid nights parameter"""
     print("Testing invalid nights parameter...")
-    exit_code, stdout, stderr = run_command(
+    exit_code, stdout, _stderr = run_command(
         "python3 send_fox_report_gmail.py --nights 0"
     )
     assert exit_code == 6, f"Expected exit code 6, got {exit_code}"
@@ -54,7 +54,7 @@ def test_invalid_nights():
 def test_config_not_found():
     """Test configuration file not found"""
     print("Testing config file not found...")
-    exit_code, stdout, stderr = run_command(
+    exit_code, _stdout, _stderr = run_command(
         "python3 send_fox_report_gmail.py --config nonexistent.yaml --quiet"
     )
     assert exit_code == 1, f"Expected exit code 1, got {exit_code}"
@@ -64,7 +64,7 @@ def test_config_not_found():
 def test_successful_run():
     """Test successful run without email"""
     print("Testing successful run...")
-    exit_code, stdout, stderr = run_command(
+    exit_code, _stdout, _stderr = run_command(
         "python3 send_fox_report_gmail.py --no-email --quiet"
     )
     assert exit_code == 0, f"Expected exit code 0, got {exit_code}"

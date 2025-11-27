@@ -10,6 +10,7 @@ section for email body.
 import json
 import logging
 from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from .config import settings
@@ -135,8 +136,9 @@ def generate_fox_report(
     # Fetch events from database
     events = get_fox_events(nights, dusk_dawn_ranges)
 
-    # Prepare report structure
-    report = {
+    # Prepare report structure with explicit types
+    events_by_camera: dict[str, list[dict[str, Any]]] = {}
+    report: dict[str, Any] = {
         "metadata": {
             "generated_at": datetime.now(MOUNTAIN_TZ).isoformat(),
             "nights_analyzed": nights,
@@ -146,7 +148,7 @@ def generate_fox_report(
                 for night, (dusk, dawn) in zip(nights, dusk_dawn_ranges, strict=False)
             ],
         },
-        "events_by_camera": {},
+        "events_by_camera": events_by_camera,
         "totals": {
             "total_events": len(events),
             "cameras_with_detections": 0,
@@ -156,21 +158,21 @@ def generate_fox_report(
     }
 
     # Group events by camera
-    camera_stats = {}
+    camera_stats: dict[str, dict[str, Any]] = {}
     total_confidence = 0.0
     total_duration = 0.0
 
     for event in events:
         camera = event["camera"]
-        if camera not in report["events_by_camera"]:
-            report["events_by_camera"][camera] = []
+        if camera not in events_by_camera:
+            events_by_camera[camera] = []
             camera_stats[camera] = {
                 "count": 0,
                 "total_confidence": 0.0,
                 "total_duration": 0.0,
             }
 
-        report["events_by_camera"][camera].append(event)
+        events_by_camera[camera].append(event)
         camera_stats[camera]["count"] += 1
         camera_stats[camera]["total_confidence"] += event["confidence"]
         camera_stats[camera]["total_duration"] += event["duration_seconds"]
@@ -272,7 +274,7 @@ def generate_markdown_report(report: dict) -> str:
         dawn_time = utc_to_mountain_time(date_range["dawn"]).strftime("%H:%M")
 
         # Calculate duration
-        duration_hours, duration_str = calculate_night_duration(
+        _duration_hours, duration_str = calculate_night_duration(
             date_range["dusk"], date_range["dawn"]
         )
 
@@ -641,7 +643,7 @@ def generate_html_report_with_thumbnails(report: dict) -> str:
         dawn_time = utc_to_mountain_time(date_range["dawn"]).strftime("%H:%M")
 
         # Calculate duration
-        duration_hours, duration_str = calculate_night_duration(
+        _duration_hours, duration_str = calculate_night_duration(
             date_range["dusk"], date_range["dawn"]
         )
 
