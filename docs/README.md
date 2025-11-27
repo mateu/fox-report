@@ -32,8 +32,11 @@ venv\Scripts\activate
 ### 2. Install Dependencies
 
 ```bash
-# Make sure virtual environment is activated first!
-pip install -r requirements.txt
+# Using uv (recommended)
+uv sync
+
+# Or using pip with pyproject.toml
+pip install -e .
 ```
 
 ### 3. Configure Environment Variables
@@ -289,6 +292,6 @@ The email system supports environment variable controlled logging:
 If emails are being sent via system mail instead of Gmail SMTP, ensure:
 
 1. **Virtual environment is activated**: `source venv/bin/activate`
-2. **All dependencies are installed**: `pip install -r requirements.txt`
+2. **All dependencies are installed**: Run `uv sync` or `pip install -e .`
 3. **Environment variables are configured**: Check `.env` file
 4. **Gmail app password is correct**: 16-character space-separated format
