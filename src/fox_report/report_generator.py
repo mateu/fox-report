@@ -272,7 +272,7 @@ def generate_markdown_report(report: dict) -> str:
         dawn_time = utc_to_mountain_time(date_range["dawn"]).strftime("%H:%M")
 
         # Calculate duration
-        duration_hours, duration_str = calculate_night_duration(
+        _duration_hours, duration_str = calculate_night_duration(
             date_range["dusk"], date_range["dawn"]
         )
 
@@ -641,7 +641,7 @@ def generate_html_report_with_thumbnails(report: dict) -> str:
         dawn_time = utc_to_mountain_time(date_range["dawn"]).strftime("%H:%M")
 
         # Calculate duration
-        duration_hours, duration_str = calculate_night_duration(
+        _duration_hours, duration_str = calculate_night_duration(
             date_range["dusk"], date_range["dawn"]
         )
 

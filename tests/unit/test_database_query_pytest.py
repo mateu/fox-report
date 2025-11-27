@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from fox_report.database_query import (
     DatabaseError,
     DatabaseLockError,
