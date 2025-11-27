@@ -70,22 +70,29 @@ class TimeResolver:
 
         return logger
 
-    def _get_timezone(self) -> tzinfo:
-        """Get timezone from config or calculate based on coordinates."""
+    def _get_timezone_name(self) -> str:
+        """Get timezone name from config."""
         location_config = self.config.get("location", {})
 
         # Use configured timezone if available
         if "timezone" in location_config:
             tz_name = location_config["timezone"]
             try:
-                return cast(tzinfo, pytz.timezone(tz_name))
+                # Validate timezone exists
+                pytz.timezone(tz_name)
+                return tz_name
             except pytz.UnknownTimeZoneError:
                 self.logger.warning("Unknown timezone %s, falling back to UTC", tz_name)
-                return cast(tzinfo, pytz.UTC)
+                return "UTC"
 
         # Fallback to UTC if no timezone configured
         self.logger.info("No timezone configured, using UTC")
-        return cast(tzinfo, pytz.UTC)
+        return "UTC"
+
+    def _get_timezone(self) -> pytz.BaseTzInfo:
+        """Get timezone object from config."""
+        tz_name = self._get_timezone_name()
+        return pytz.timezone(tz_name)
 
     def _calculate_astral_times(self, target_date: date) -> tuple[datetime, datetime]:
         """
@@ -118,7 +125,7 @@ class TimeResolver:
 
         # Create location info
         location = LocationInfo(
-            timezone=self._get_timezone(), latitude=latitude, longitude=longitude
+            timezone=self._get_timezone_name(), latitude=latitude, longitude=longitude
         )
 
         # Get twilight type from advanced settings
