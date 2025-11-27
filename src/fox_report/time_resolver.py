@@ -7,8 +7,8 @@ either the astral library with geographic coordinates or static fallback times.
 """
 
 import logging
-from datetime import date, datetime, timedelta, tzinfo
-from typing import Any, cast
+from datetime import date, datetime, timedelta
+from typing import Any
 
 import pytz
 import yaml
